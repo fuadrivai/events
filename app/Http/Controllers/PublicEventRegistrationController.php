@@ -104,6 +104,7 @@ class PublicEventRegistrationController extends Controller
         $externalId = $event->slug . '-' . $registration->id;
         $adminFee = 3663;
         $totalAmount = (int) $amount + $adminFee;
+        $branch = $event->owner?->branch;
         try {
             $invoice = $xendit->createInvoice([
                 'external_id' => $externalId,
@@ -113,6 +114,7 @@ class PublicEventRegistrationController extends Controller
                 'success_redirect_url' => url('/payment/success'),
                 'failure_redirect_url' => url('/payment/failed'),
                 'invoice_duration' => $durationInSeconds,
+                'token'=> $branch?->xendit_token??null,
             ]);
         } catch (\Throwable $e) {
             return back()->withErrors(['payment' => 'Gagal membuat invoice pembayaran. Silakan coba lagi.'])

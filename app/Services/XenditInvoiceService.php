@@ -41,8 +41,10 @@ class XenditInvoiceService
         if (!empty($payload['failure_redirect_url'])) {
             $body['failure_redirect_url'] = $payload['failure_redirect_url'];
         }
+
+        $token = $payload['token'] ?? $this->secretKey;
     
-        $response = Http::withBasicAuth($this->secretKey, '')
+        $response = Http::withBasicAuth($token, '')
             ->acceptJson()
             ->post('https://api.xendit.co/v2/invoices', $body);
     

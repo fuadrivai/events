@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Event;
 use App\Models\EventRegistration;
 use App\Models\GoogleSheetExport;
+use App\Models\Payment;
 use App\Services\GoogleSheetsExporter;
 use Illuminate\Http\Request;
 
@@ -54,6 +55,8 @@ class EventRegistrationGoogleSheetExportController extends Controller
                 'Name',
                 'Email',
                 'Phone',
+                'Registration Code',
+                'External ID',
                 'Status',
                 'Package',
                 'Amount',
@@ -241,6 +244,9 @@ class EventRegistrationGoogleSheetExportController extends Controller
             |--------------------------------------------------------------------------
             */
 
+            $externalId = Payment::where('registration_id', $r->id)
+                ->value('external_id');
+
             $base = [
                 $r->id,
 
@@ -250,6 +256,8 @@ class EventRegistrationGoogleSheetExportController extends Controller
                 $r->name,
                 $r->email,
                 $r->phone,
+                $r->registration_code,
+                $externalId ?? '',
                 $r->status,
                 $r->price_name_snapshot,
                 $r->amount_snapshot,
