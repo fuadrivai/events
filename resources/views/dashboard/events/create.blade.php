@@ -228,9 +228,9 @@
                                 <div class="col-md-6 mb-3">
                                     <div class="form-group">
                                         <label class="form-label">Slug / URL <span class="required">*</span></label>
-                                        <input type="text" name="slug" class="form-control"
-                                            placeholder="steam-fair-2026" required value="{{ old('slug') }}">
-                                        <small class="text-muted">Gunakan huruf kecil dan tanda hubung (-).</small>
+                                        <input type="text" name="slug" id="slug" class="form-control"
+                                            readonly placeholder="steam-fair-2026" required value="{{ old('slug') }}">
+                                        <small class="text-muted">Slug dibuat otomatis dari judul event.</small>
                                     </div>
                                 </div>
 
@@ -294,6 +294,33 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            const titleInput = document.querySelector('input[name="title"]');
+            const slugInput = document.getElementById('slug');
+
+            function slugify(value) {
+                return value
+                    .toString()
+                    .trim()
+                    .toLowerCase()
+                    .normalize('NFKD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .replace(/[^a-z0-9\s-]/g, '')
+                    .replace(/\s+/g, '-')
+                    .replace(/-+/g, '-')
+                    .replace(/^-+|-+$/g, '');
+            }
+
+            const syncSlug = function() {
+                const title = titleInput.value;
+                slugInput.value = slugify(title);
+            };
+
+            titleInput.addEventListener('input', syncSlug);
+
+            if (!slugInput.value && titleInput.value) {
+                syncSlug();
+            }
+
             // Init Quill
             const quill = new Quill('#intro-editor', {
                 theme: 'snow',
@@ -318,7 +345,6 @@
             const introInput = document.getElementById('intro_html');
 
             // Set initial value jika ada old input (saat validasi error)
-            // Jika introInput value kosong, kita tidak timpa dengan innerHTML editor yg kosong
             if (introInput.value) {
                 quill.root.innerHTML = introInput.value;
             } else {

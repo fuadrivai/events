@@ -7,7 +7,7 @@
             </div>
 
             <a href="{{ route('dashboard.users.create') }}"
-               class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
+                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
                 + Buat User
             </a>
         </div>
@@ -29,6 +29,7 @@
                         <tr>
                             <th class="text-left p-3">Nama</th>
                             <th class="text-left p-3">Email</th>
+                            <th class="text-left p-3">Cabang</th>
                             <th class="text-left p-3">Role</th>
                             <th class="text-left p-3">Created</th>
                         </tr>
@@ -38,21 +39,31 @@
                             <tr>
                                 <td class="p-3 font-medium text-gray-900">{{ $u->name }}</td>
                                 <td class="p-3 text-gray-700">{{ $u->email }}</td>
+                                <td class="p-3 text-gray-700">
+                                    {{ $u->branch?->name ?? '—' }}
+                                </td>
                                 <td class="p-3">
                                     @php
-                                        $badge = $u->role === 'admin'
-                                            ? 'bg-purple-100 text-purple-800'
-                                            : 'bg-gray-100 text-gray-800';
+                                        $badge =
+                                            $u->role === 'admin'
+                                                ? 'bg-purple-100 text-purple-800'
+                                                : 'bg-gray-100 text-gray-800';
                                     @endphp
                                     <span class="px-2 py-1 rounded-full text-xs {{ $badge }}">
                                         {{ $u->role }}
                                     </span>
                                 </td>
                                 <td class="p-3 text-gray-600">{{ optional($u->created_at)->format('Y-m-d H:i') }}</td>
+                                <td class="p-3">
+                                    <a href="{{ route('dashboard.users.edit', $u) }}"
+                                        class="inline-flex items-center px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">
+                                        Edit
+                                    </a>
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td class="p-6 text-gray-500" colspan="4">Belum ada user.</td>
+                                <td class="p-6 text-gray-500" colspan="5">Belum ada user.</td>
                             </tr>
                         @endforelse
                     </tbody>

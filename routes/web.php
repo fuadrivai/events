@@ -100,6 +100,8 @@ Route::middleware(['auth', 'admin'])
         Route::get('/users', [\App\Http\Controllers\Dashboard\UserController::class, 'index'])->name('users.index');
         Route::get('/users/create', [\App\Http\Controllers\Dashboard\UserController::class, 'create'])->name('users.create');
         Route::post('/users', [\App\Http\Controllers\Dashboard\UserController::class, 'store'])->name('users.store');
+        Route::get('/users/{user}/edit', [\App\Http\Controllers\Dashboard\UserController::class, 'edit'])->name('users.edit');
+        Route::put('/users/{user}', [\App\Http\Controllers\Dashboard\UserController::class, 'update'])->name('users.update');
     });
 
 Route::view('/payment/success', 'payment.success')->name('payment.success');

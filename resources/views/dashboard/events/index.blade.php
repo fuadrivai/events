@@ -29,7 +29,7 @@
     <div class="h-1 w-full bg-gradient-to-r from-amber-600 via-amber-400 to-amber-200"></div>
 
     <div class="py-10 bg-gray-50 min-h-screen">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-8xl mx-auto">
 
             {{-- Alert Success --}}
             @if (session('success'))
@@ -46,10 +46,11 @@
                 </div>
             @endif
 
-            <div class="bg-white overflow-hidden shadow-lg sm:rounded-xl border-t-8 border-amber-500">
-                <div class="p-8">
+            <div class="bg-white overflow-hidden shadow-lg sm:rounded-xl border-t-8 border-amber-500 w-full">
+                <div class="p-8 w-full">
                     {{-- Header Card: Title & Actions --}}
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                    <div
+                        class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 w-full">
                         <div>
                             <h3 class="text-2xl font-bold text-gray-900 font-serif">Event List</h3>
                             <p class="text-gray-500 mt-1">Manage school event registrations and details.</p>
@@ -65,22 +66,44 @@
                         </div>
                     </div>
 
+                    <form method="GET" action="{{ route('dashboard.events') }}"
+                        class="mb-6 flex flex-col md:flex-row gap-3 items-center" id="eventFilterForm">
+                        <div class="flex-1 w-full">
+                            <label for="search" class="sr-only">Search title</label>
+                            <input id="search" name="search" type="text" value="{{ request('search') }}"
+                                placeholder="Search by title..."
+                                class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-700 focus:border-amber-500 focus:ring-amber-500"
+                                oninput="this.form.submit()">
+                        </div>
+
+                        <div class="w-full md:w-52">
+                            <label for="status" class="sr-only">Filter by status</label>
+                            <select id="status" name="status"
+                                class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-700 focus:border-amber-500 focus:ring-amber-500"
+                                onchange="this.form.submit()">
+                                <option value="">All Status</option>
+                                <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active
+                                </option>
+                                <option value="draft" {{ request('status') === 'draft' ? 'selected' : '' }}>Draft
+                                </option>
+                                <option value="closed" {{ request('status') === 'closed' ? 'selected' : '' }}>Closed
+                                </option>
+                            </select>
+                        </div>
+                    </form>
+
                     {{-- Table Section --}}
-                    <div class="overflow-x-auto rounded-lg border border-gray-200">
-                        <table class="min-w-full divide-y divide-gray-200">
+                    <div class="overflow-x-auto rounded-lg border border-gray-200 w-full">
+                        <table class="w-full min-w-[900px] divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th scope="col"
                                         class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                        Event Title
+                                        Event
                                     </th>
                                     <th scope="col"
                                         class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                        Owner
-                                    </th>
-                                    <th scope="col"
-                                        class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                        Slug / URL
+                                        Owner / Branch
                                     </th>
                                     <th scope="col"
                                         class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
@@ -96,16 +119,22 @@
                                 @forelse ($events as $event)
                                     <tr class="hover:bg-amber-50/30 transition-colors duration-200">
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm font-bold text-gray-900">{{ $event->title }}</div>
+                                            <div class="flex flex-col gap-1">
+                                                <div class="text-sm font-bold text-gray-900">{{ $event->title }}</div>
+                                                <span
+                                                    class="px-2 py-1 text-xs font-mono font-medium text-gray-600 bg-gray-100 rounded border border-gray-200 w-fit">
+                                                    {{ $event->slug }}
+                                                </span>
+                                            </div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm font-bold text-gray-900">{{ $event->owner->name }}</div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span
-                                                class="px-2 py-1 text-xs font-mono font-medium text-gray-600 bg-gray-100 rounded border border-gray-200">
-                                                {{ $event->slug }}
-                                            </span>
+                                            <div class="flex flex-col gap-1">
+                                                <div class="text-sm font-bold text-gray-900">{{ $event->owner->name }}
+                                                </div>
+                                                <div class="text-xs text-gray-600">
+                                                    {{ $event->owner?->branch?->name ?? '—' }}
+                                                </div>
+                                            </div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-center">
                                             @if ($event->status == 'PUBLISHED' || $event->status == 'active')
@@ -128,7 +157,8 @@
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <div class="flex justify-center space-x-2">
                                                 {{-- Detail --}}
-                                                <a target="_blank" href="{{ route('public.event.show', $event->slug) }}"
+                                                <a target="_blank"
+                                                    href="{{ route('public.event.show', $event->slug) }}"
                                                     class="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded-full transition-colors"
                                                     title="View Detail">
                                                     <i class="fas fa-eye text-lg"></i>
@@ -152,7 +182,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="px-6 py-12 text-center text-gray-500">
+                                        <td colspan="5" class="px-6 py-12 text-center text-gray-500">
                                             <div class="flex flex-col items-center justify-center">
                                                 <div class="bg-gray-100 p-4 rounded-full mb-3">
                                                     <i class="fas fa-folder-open text-4xl text-gray-400"></i>

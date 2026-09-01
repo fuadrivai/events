@@ -15,6 +15,32 @@ class EventPriceOptionController extends Controller
         return Event::query()->where('id', $eventId)->firstOrFail();
     }
 
+    private function generateUniqueCode(Event $event, ?string $preferredCode = null): string
+    {
+        $candidate = trim((string) ($preferredCode ?? ''));
+
+        if ($candidate === '') {
+            $candidate = strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
+        } else {
+            $candidate = strtoupper(preg_replace('/[^A-Z0-9]/', '', $candidate));
+            if ($candidate === '') {
+                $candidate = strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
+            }
+        }
+
+        $candidate = substr($candidate, 0, 12);
+        $suffix = 2;
+
+        while (EventPriceOption::where('event_id', $event->id)
+            ->whereRaw('UPPER(code) = ?', [$candidate])
+            ->exists()) {
+            $candidate = substr($candidate, 0, 9) . '-' . $suffix;
+            $suffix++;
+        }
+
+        return $candidate;
+    }
+
     public function index(string $orgSlug, string $eventId)
     {
         $event = $this->loadEvent($eventId);
@@ -32,10 +58,7 @@ class EventPriceOptionController extends Controller
         $event = $this->loadEvent($eventId);
 
         $data = $request->validate([
-            'code' => [
-                'required', 'string', 'max:50',
-                Rule::unique('event_price_options', 'code')->where('event_id', $event->id),
-            ],
+            'code' => ['nullable', 'string', 'max:50'],
             'name' => ['required', 'string', 'max:120'],
             'amount' => ['required', 'integer', 'min:0'],
             'currency' => ['nullable', 'string', 'max:10'],
@@ -45,11 +68,12 @@ class EventPriceOptionController extends Controller
             'sales_end_at' => ['nullable', 'date', 'after_or_equal:sales_start_at'],
         ]);
 
+        $code = $this->generateUniqueCode($event, $data['code'] ?? null, $data['name']);
         $maxOrder = EventPriceOption::where('event_id', $event->id)->max('order_index') ?? 0;
 
         EventPriceOption::create([
             'event_id' => $event->id,
-            'code' => strtoupper(trim($data['code'])),
+            'code' => $code,
             'name' => $data['name'],
             'amount' => $data['amount'],
             'currency' => $data['currency'] ?? 'IDR',

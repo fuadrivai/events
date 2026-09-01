@@ -10,14 +10,42 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 class EventController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = auth()->user();
-    
-        $events = $user->isAdmin()
-            ? \App\Models\Event::latest()->paginate(20)
-            : \App\Models\Event::where('created_by', $user->id)->latest()->paginate(20);
-    
+
+        $query = $user->isAdmin()
+            ? \App\Models\Event::query()
+            : \App\Models\Event::where('created_by', $user->id);
+
+        if ($request->filled('search')) {
+            $query->where('title', 'like', '%' . trim($request->search) . '%');
+        }
+
+        if ($request->filled('status')) {
+            $status = strtolower((string) $request->status);
+
+            if ($status === 'active') {
+                $query->where(function ($q) {
+                    $q->whereRaw('LOWER(status) = ?', ['active'])
+                      ->orWhereRaw('LOWER(status) = ?', ['published']);
+                });
+            } else {
+                $query->whereRaw('LOWER(status) = ?', [$status]);
+            }
+        }
+
+        $events = $query
+            ->orderByRaw("CASE
+                WHEN LOWER(status) IN ('active', 'published') THEN 1
+                WHEN LOWER(status) = 'draft' THEN 2
+                WHEN LOWER(status) = 'closed' THEN 3
+                ELSE 4
+            END ASC")
+            ->latest()
+            ->paginate(20)
+            ->appends($request->only(['search', 'status']));
+
         return view('dashboard.events.index', compact('events'));
     }
 
