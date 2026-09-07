@@ -8,6 +8,10 @@ class Event extends Model
 {
     protected $guarded = ['id'];
 
+    protected $casts = [
+        'included_admin_fee' => 'boolean',
+    ];
+
 public function fields()
 {
     return $this->hasMany(\App\Models\EventField::class);

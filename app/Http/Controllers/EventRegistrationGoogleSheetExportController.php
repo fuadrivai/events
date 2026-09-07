@@ -379,16 +379,6 @@ class EventRegistrationGoogleSheetExportController extends Controller
                 }
             }
         }
-
-        /*
-        |--------------------------------------------------------------------------
-        | GET NEW REGISTRATIONS
-        |--------------------------------------------------------------------------
-        |
-        | ID lebih besar dari last exported ID = data baru.
-        |--------------------------------------------------------------------------
-        */
-
         $newRegs = EventRegistration::where(
             'event_id',
             $event->id

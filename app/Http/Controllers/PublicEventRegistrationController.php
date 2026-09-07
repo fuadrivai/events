@@ -102,7 +102,7 @@ class PublicEventRegistrationController extends Controller
         $durationInSeconds = max(0, (int) now()->diffInSeconds($activeUntil, false));
 
         $externalId = $event->slug . '-' . $registration->id;
-        $adminFee = 3663;
+        $adminFee = $event->included_admin_fee ? 3663 : 0;
         $totalAmount = (int) $amount + $adminFee;
         $branch = $event->owner?->branch;
         try {
@@ -159,11 +159,18 @@ class PublicEventRegistrationController extends Controller
             ->where('key', 'INVOICE_CREATED')
             ->first();
 
-        if ($template && $payment) {
+        if ($payment) {
             $renderer = app(\App\Services\EmailTemplateRenderer::class);
 
-            $subject = $renderer->render($template->subject, $registration, $payment);
-            $content = $renderer->render($template->body, $registration, $payment);
+            $subject = $template
+                ? $renderer->render($template->subject, $registration, $payment)
+                : 'Invoice Registration - ' . ($event->title ?? 'Event');
+            $content = $template
+                ? $renderer->render($template->body, $registration, $payment)
+                : '<p>Halo ' . e($registration->name) . ',</p>'
+                    . '<p>Invoice pendaftaran untuk <strong>' . e($event->title ?? 'Event') . '</strong> telah dibuat.</p>'
+                    . '<p>Silakan lanjutkan pembayaran melalui tombol berikut:</p>'
+                    . '<p><a href="' . e($payment->invoice_url) . '">Bayar Sekarang / Pay Now</a></p>';
 
             // Wrap dengan layout default (header & footer)
             $html = view('emails.layouts.default', [

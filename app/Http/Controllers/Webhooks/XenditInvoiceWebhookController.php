@@ -93,7 +93,7 @@ class XenditInvoiceWebhookController extends Controller
                     }
                 }
 
-                $adminFee = 3663;
+                $adminFee = $event?->included_admin_fee ? 3663 : 0;
                 $amount   = (int) $payment->amount;
                 $total    = $amount + $adminFee;
 
@@ -106,6 +106,7 @@ class XenditInvoiceWebhookController extends Controller
                     'description' => 'Registration for ' . ($event?->title ?? 'Event'),
                     'fee'   => number_format($amount, 0, ',', '.'),
                     'bank'  => number_format($adminFee, 0, ',', '.'),
+                    'include_admin_fee' => $adminFee > 0,
                     'total' => number_format($total, 0, ',', '.'),
                 ])->render();
 

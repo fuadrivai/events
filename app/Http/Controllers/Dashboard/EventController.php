@@ -61,16 +61,17 @@ public function store(Request $request)
         'intro_html' => 'nullable|string',
         'active_until' => 'nullable|date',
         'price_question_label' => 'nullable|string|max:150',
+        'included_admin_fee' => 'nullable|boolean',
     ]);
 
     $data['status'] = 'draft';
+    $data['included_admin_fee'] = (bool) (auth()->user()?->isAdmin() && $request->boolean('included_admin_fee'));
     $data['active_until'] = $data['active_until'] ? Carbon::parse($data['active_until'])->format('Y-m-d H:i:s') : null;
     $event = Event::create([
         ...$data,
         'created_by' => auth()->id(),
     ]);
 
-    // ✅ kirim model (akan pakai id untuk {event})
     return redirect()->route('dashboard.events.edit', $event)
         ->with('success', 'Event dibuat (draft).');
 }
@@ -238,11 +239,17 @@ public function update(Request $request, Event $event)
         'intro_html' => 'nullable|string',
         'active_until' => 'nullable|string',
         'price_question_label' => 'nullable|string|max:150',
+        'included_admin_fee' => 'nullable|boolean',
     ]);
     // Update normal field
     $status = $data['status'] ?? null;
     
     $user = auth()->user();
+    if ($user?->isAdmin()) {
+        $data['included_admin_fee'] = $request->boolean('included_admin_fee');
+    } else {
+        unset($data['included_admin_fee']);
+    }
     if(!$user->isAdmin()){
         
         unset($data['status']);

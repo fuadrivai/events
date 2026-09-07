@@ -303,6 +303,19 @@
                                             </div>
                                         </div>
                                     </div>
+                                    @if (auth()->user()?->isAdmin())
+                                        <div class="col-md-6">
+                                            <div class="form-check mt-4">
+                                                <input type="hidden" name="included_admin_fee" value="0">
+                                                <input type="checkbox" name="included_admin_fee" value="1"
+                                                    class="form-check-input" id="included_admin_fee"
+                                                    @checked((int) old('included_admin_fee', $event->included_admin_fee) === 1)>
+                                                <label class="form-check-label" for="included_admin_fee">
+                                                    Include admin fee (Rp3.663)
+                                                </label>
+                                            </div>
+                                        </div>
+                                    @endif
                                 </div>
 
                                 <hr>
