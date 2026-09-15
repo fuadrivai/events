@@ -131,11 +131,13 @@ class GoogleSheetsExporter
         string $spreadsheetId,
         array $headers
     ): void {
+        $sheetRange = $this->firstSheetRange($spreadsheetId, 'A1');
+
         $this->sheets()
             ->spreadsheets_values
             ->update(
                 $spreadsheetId,
-                'Sheet1!A1',
+                $sheetRange,
                 new ValueRange([
                     'values' => [
                         $headers,
@@ -161,11 +163,13 @@ class GoogleSheetsExporter
             return;
         }
 
+        $sheetRange = $this->firstSheetRange($spreadsheetId, 'A2');
+
         $this->sheets()
             ->spreadsheets_values
             ->append(
                 $spreadsheetId,
-                'Sheet1!A2',
+                $sheetRange,
                 new ValueRange([
                     'values' => $rows,
                 ]),
@@ -244,11 +248,13 @@ class GoogleSheetsExporter
     public function getIdRowMap(
         string $spreadsheetId
     ): array {
+        $sheetRange = $this->firstSheetRange($spreadsheetId, 'A1:F10000');
+
         $response = $this->sheets()
             ->spreadsheets_values
             ->get(
                 $spreadsheetId,
-                'Sheet1!A1:F10000'
+                $sheetRange
             );
 
         $rows = $response->getValues() ?? [];
@@ -307,7 +313,7 @@ class GoogleSheetsExporter
         int $rowNumber,
         array $rowData
     ): void {
-        $range = "Sheet1!A{$rowNumber}";
+        $range = $this->firstSheetRange($spreadsheetId, "A{$rowNumber}");
 
         $this->sheets()
             ->spreadsheets_values
@@ -348,6 +354,7 @@ class GoogleSheetsExporter
             return;
         }
 
+        $sheetName = $this->firstSheetName($spreadsheetId);
         $data = [];
 
         foreach ($updates as $update) {
@@ -357,7 +364,7 @@ class GoogleSheetsExporter
             $rowData = $update['data'];
 
             $data[] = new ValueRange([
-                'range' => "Sheet1!A{$rowNumber}",
+                'range' => $this->a1Range($sheetName, "A{$rowNumber}"),
                 'values' => [
                     $rowData,
                 ],
@@ -394,6 +401,36 @@ class GoogleSheetsExporter
             ->getSheets()[0]
             ->getProperties()
             ->getSheetId();
+    }
+
+    private function firstSheetName(
+        string $spreadsheetId
+    ): string {
+        $spreadsheet = $this->sheets()
+            ->spreadsheets
+            ->get($spreadsheetId);
+
+        return $spreadsheet
+            ->getSheets()[0]
+            ->getProperties()
+            ->getTitle();
+    }
+
+    private function firstSheetRange(
+        string $spreadsheetId,
+        string $range
+    ): string {
+        return $this->a1Range(
+            $this->firstSheetName($spreadsheetId),
+            $range
+        );
+    }
+
+    private function a1Range(
+        string $sheetName,
+        string $range
+    ): string {
+        return "'" . str_replace("'", "''", $sheetName) . "'!{$range}";
     }
 
     /*
