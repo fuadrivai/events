@@ -248,7 +248,7 @@ class GoogleSheetsExporter
             ->spreadsheets_values
             ->get(
                 $spreadsheetId,
-                'Sheet1!A:F10000'
+                'Sheet1!A1:F10000'
             );
 
         $rows = $response->getValues() ?? [];
