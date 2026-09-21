@@ -62,7 +62,12 @@ class XenditInvoiceWebhookController extends Controller
             // Load relasi untuk renderer & PDF
             $payment->loadMissing(['registration.event', 'registration.answers']);
             $registration = $payment->registration;
-            $event = $registration->event??"";
+
+            if (!$registration) {
+                return response()->json(['ok' => true]);
+            }
+
+            $event = $registration->event;
 
             $template = EventEmailTemplate::where('event_id', $registration->event_id)
                 ->where('key', 'PAYMENT_PAID')
@@ -85,17 +90,19 @@ class XenditInvoiceWebhookController extends Controller
                     }
                 }
 
-                $adminFee = $event->included_admin_fee ? 3663 : 0;
-                $amount   = (int) $payment->amount;
-                $total    = $amount + $adminFee;
+                $paidAt = $payment->paid_at ?? now();
+                $amount = (int) $payment->amount;
+                $total = (int) data_get($payment->payload_json, 'amount', 0);
+                $total = $total > 0 ? $total : $amount + (optional($event)->included_admin_fee ? 3663 : 0);
+                $adminFee = max(0, $total - $amount);
 
                 $pdfHtml = view('pdf.receipt', [
                     'image_data_uri' => $imageDataUri,
-                    'transaction_timestamp' => $payment->paid_at->format('d M Y H:i') ?? now()->format('d M Y H:i'),
+                    'transaction_timestamp' => $paidAt->format('d M Y H:i'),
                     'external_id' => $payment->external_id ?? $payment->invoice_id,
-                    'dateResv' => $payment->paid_at->format('d M Y') ?? now()->format('d M Y'),
-                    'timeResv' => $payment->paid_at->format('H:i') ?? now()->format('H:i'),
-                    'description' => 'Registration for ' . ($event->title ?? 'Event'),
+                    'dateResv' => $paidAt->format('d M Y'),
+                    'timeResv' => $paidAt->format('H:i'),
+                    'description' => 'Registration for ' . (optional($event)->title ?? 'Event'),
                     'fee'   => number_format($amount, 0, ',', '.'),
                     'bank'  => number_format($adminFee, 0, ',', '.'),
                     'include_admin_fee' => $adminFee > 0,
