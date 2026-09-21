@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Models\EventEmailTemplate;
 use App\Services\EmailTemplateRenderer;
 use Illuminate\Support\Facades\Mail;
@@ -26,21 +27,31 @@ class XenditInvoiceWebhookController extends Controller
         }
 
         // 3) Find payment (idempotency by invoice_id)
-        $payment = Payment::where('invoice_id', $invoiceId)->first();
+        $externalId = $request->input('external_id');
+        $payment = Payment::where('invoice_id', $invoiceId)
+            ->when($externalId, function ($query) use ($externalId) {
+                $query->orWhere('external_id', $externalId);
+            })
+            ->first();
         if (!$payment) {
-            return response()->json(['ok' => true]); // ack biar xendit gak retry
+            Log::warning('Xendit webhook payment not found', [
+                'invoice_id' => $invoiceId,
+                'external_id' => $request->input('external_id'),
+            ]);
+            return response()->json(['ok' => false, 'message' => 'Payment not found'], 500);
         }
 
         // 4) Idempotent no-op
-        if ($payment->status === 'PAID' && $status === 'PAID') {
+        if (
+            $payment->status === 'PAID'
+            && $status === 'PAID'
+            && data_get($payment->payload_json, 'payment_email_sent_at')
+        ) {
             return response()->json(['ok' => true]);
         }
 
         // 5) Apply status
         if ($status === 'PAID') {
-
-            // ambil status sebelum update (untuk idempotent email)
-            $wasPaid = ($payment->status === 'PAID');
 
             DB::transaction(function () use ($payment, $payload, $paidAt) {
                 $payment->update([
@@ -54,17 +65,17 @@ class XenditInvoiceWebhookController extends Controller
                 ]);
             });
 
-            // Kalau sebelumnya sudah PAID, stop (hindari kirim email/PDF dobel)
-            if ($wasPaid) {
-                return response()->json(['ok' => true]);
-            }
-
             // Load relasi untuk renderer & PDF
             $payment->loadMissing(['registration.event', 'registration.answers']);
             $registration = $payment->registration;
 
             if (!$registration) {
-                return response()->json(['ok' => true]);
+                Log::error('Xendit webhook registration not found for payment', [
+                    'payment_id' => $payment->id,
+                    'invoice_id' => $payment->invoice_id,
+                    'registration_id' => $payment->registration_id,
+                ]);
+                return response()->json(['ok' => false, 'message' => 'Registration not found'], 500);
             }
 
             $event = $registration->event;
@@ -73,8 +84,17 @@ class XenditInvoiceWebhookController extends Controller
                 ->where('key', 'PAYMENT_PAID')
                 ->first();
 
-            if ($template) {
-                $renderer = app(EmailTemplateRenderer::class);
+            if (!$template) {
+                Log::error('PAYMENT_PAID email template not found', [
+                    'event_id' => $registration->event_id,
+                    'registration_id' => $registration->id,
+                    'payment_id' => $payment->id,
+                ]);
+
+                return response()->json(['ok' => false, 'message' => 'PAYMENT_PAID template not found'], 500);
+            }
+
+            $renderer = app(EmailTemplateRenderer::class);
 
                 $subject = $renderer->render($template->subject, $registration, $payment);
                 $content = $renderer->render($template->body, $registration, $payment);
@@ -122,14 +142,26 @@ class XenditInvoiceWebhookController extends Controller
                     'payment' => $payment,
                 ])->render();
 
-                Mail::html($html, function ($message) use ($registration, $subject, $pdfBytes) {
-                    $message->to($registration->email)
-                        ->subject($subject)
-                        ->attachData($pdfBytes, 'payment-receipt.pdf', [
-                            'mime' => 'application/pdf',
-                        ]);
-                });
-            }
+            Mail::html($html, function ($message) use ($registration, $subject, $pdfBytes) {
+                $message->to($registration->email)
+                    ->subject($subject)
+                    ->attachData($pdfBytes, 'payment-receipt.pdf', [
+                        'mime' => 'application/pdf',
+                    ]);
+            });
+
+            $payment->update([
+                'payload_json' => array_merge($payment->payload_json ?? [], [
+                    'payment_email_sent_at' => now()->toIso8601String(),
+                ]),
+            ]);
+
+            Log::info('Xendit payment receipt email sent', [
+                'payment_id' => $payment->id,
+                'invoice_id' => $payment->invoice_id,
+                'registration_id' => $registration->id,
+                'recipient' => $registration->email,
+            ]);
 
             return response()->json(['ok' => true]);
         }
