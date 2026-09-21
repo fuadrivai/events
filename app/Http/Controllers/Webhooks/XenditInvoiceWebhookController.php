@@ -15,15 +15,7 @@ class XenditInvoiceWebhookController extends Controller
 {
     public function handle(Request $request)
     {
-        // 1) Verify token (XENDIT_WEBHOOK_TOKEN)
-        // $expected = (string) config('xendit.webhook_token');
-        // $received = (string) ($request->header('x-callback-token') ?? '');
 
-        // if ($expected === '' || !hash_equals($expected, $received)) {
-        //     return response()->json(['message' => 'Unauthorized'], 401);
-        // }
-
-        // 2) Parse payload
         $invoiceId = $request->input('id'); // Xendit invoice id
         $status    = strtoupper((string) $request->input('status')); // PAID / EXPIRED
         $paidAt    = $request->input('paid_at'); // optional
@@ -70,7 +62,7 @@ class XenditInvoiceWebhookController extends Controller
             // Load relasi untuk renderer & PDF
             $payment->loadMissing(['registration.event', 'registration.answers']);
             $registration = $payment->registration;
-            $event = $registration?->event;
+            $event = $registration->event??"";
 
             $template = EventEmailTemplate::where('event_id', $registration->event_id)
                 ->where('key', 'PAYMENT_PAID')
@@ -93,17 +85,17 @@ class XenditInvoiceWebhookController extends Controller
                     }
                 }
 
-                $adminFee = $event?->included_admin_fee ? 3663 : 0;
+                $adminFee = $event->included_admin_fee ? 3663 : 0;
                 $amount   = (int) $payment->amount;
                 $total    = $amount + $adminFee;
 
                 $pdfHtml = view('pdf.receipt', [
                     'image_data_uri' => $imageDataUri,
-                    'transaction_timestamp' => $payment->paid_at?->format('d M Y H:i') ?? now()->format('d M Y H:i'),
+                    'transaction_timestamp' => $payment->paid_at->format('d M Y H:i') ?? now()->format('d M Y H:i'),
                     'external_id' => $payment->external_id ?? $payment->invoice_id,
-                    'dateResv' => $payment->paid_at?->format('d M Y') ?? now()->format('d M Y'),
-                    'timeResv' => $payment->paid_at?->format('H:i') ?? now()->format('H:i'),
-                    'description' => 'Registration for ' . ($event?->title ?? 'Event'),
+                    'dateResv' => $payment->paid_at->format('d M Y') ?? now()->format('d M Y'),
+                    'timeResv' => $payment->paid_at->format('H:i') ?? now()->format('H:i'),
+                    'description' => 'Registration for ' . ($event->title ?? 'Event'),
                     'fee'   => number_format($amount, 0, ',', '.'),
                     'bank'  => number_format($adminFee, 0, ',', '.'),
                     'include_admin_fee' => $adminFee > 0,
