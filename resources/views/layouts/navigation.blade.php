@@ -24,6 +24,13 @@
 
             <!-- Settings Dropdown -->
             <div class="hidden sm:flex sm:items-center sm:ms-6">
+                @if (Auth::user()->isAdmin() || Auth::user()->is_admin)
+                    <a href="{{ route('dashboard.photo-events.index') }}"
+                        class="mr-4 inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">
+                        <i class="fas fa-camera-retro"></i>
+                        <span>Photo Booth</span>
+                    </a>
+                @endif
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button
@@ -88,6 +95,12 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
+            @if (Auth::user()->isAdmin() || Auth::user()->is_admin)
+                <x-responsive-nav-link :href="route('dashboard.photo-events.index')"
+                    :active="request()->routeIs('dashboard.photo-events.*')">
+                    <i class="fas fa-camera-retro mr-2"></i> Photo Booth
+                </x-responsive-nav-link>
+            @endif
         </div>
 
         <!-- Responsive Settings Options -->

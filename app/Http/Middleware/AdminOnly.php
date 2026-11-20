@@ -2,9 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 
 class AdminOnly
 {
@@ -14,9 +12,12 @@ class AdminOnly
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle($request, \Closure $next)
-{
-    if (!auth()->check() || !auth()->user()->is_admin) abort(403);
-    return $next($request);
-}
+    {
+        $user = auth()->user();
+        if (! $user || (! $user->is_admin && ! $user->isAdmin())) {
+            abort(403);
+        }
 
+        return $next($request);
+    }
 }

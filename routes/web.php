@@ -15,6 +15,9 @@ use App\Http\Controllers\Webhooks\XenditInvoiceWebhookController;
 use App\Http\Controllers\Dashboard\EventEmailTemplateController;
 use App\Http\Controllers\GoogleOAuthController;
 use App\Http\Controllers\EventRegistrationGoogleSheetExportController;
+use App\Http\Controllers\Dashboard\PhotoEventController;
+use App\Http\Controllers\PhotoDownloadController;
+use App\Http\Controllers\PhotoUploadController;
 Route::get('/', function () {
     return redirect()->route('dashboard');
 });
@@ -102,7 +105,20 @@ Route::middleware(['auth', 'admin'])
         Route::post('/users', [\App\Http\Controllers\Dashboard\UserController::class, 'store'])->name('users.store');
         Route::get('/users/{user}/edit', [\App\Http\Controllers\Dashboard\UserController::class, 'edit'])->name('users.edit');
         Route::put('/users/{user}', [\App\Http\Controllers\Dashboard\UserController::class, 'update'])->name('users.update');
+        Route::get('/photo-events', [PhotoEventController::class, 'index'])->name('photo-events.index');
+        Route::get('/photo-events/create', [PhotoEventController::class, 'create'])->name('photo-events.create');
+        Route::post('/photo-events', [PhotoEventController::class, 'store'])->name('photo-events.store');
+        Route::get('/photo-events/{photoEvent}/edit', [PhotoEventController::class, 'edit'])->name('photo-events.edit');
+        Route::put('/photo-events/{photoEvent}', [PhotoEventController::class, 'update'])->name('photo-events.update');
+        Route::get('/photo-events/{photoEvent}/booth', [PhotoEventController::class, 'booth'])
+            ->name('photo-events.booth');
+        Route::post('/photo-events/{photoEvent}/photos', [PhotoUploadController::class, 'store'])
+            ->name('photo-events.photos.store');
     });
+
+Route::get('/photo-download/{token}', PhotoDownloadController::class)
+    ->where('token', '[A-Za-z0-9]{64}')
+    ->name('photo.download');
 
 Route::view('/payment/success', 'payment.success')->name('payment.success');
 Route::view('/payment/failed', 'payment.failed')->name('payment.failed');
