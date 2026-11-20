@@ -67,6 +67,25 @@
                             </div>
                             @error('slug')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
                         </div>
+                        <div>
+                            <label for="active_date" class="mb-2 block text-sm font-semibold text-slate-700">Active date / tanggal acara <span class="text-rose-500">*</span></label>
+                            <input id="active_date" name="active_date" type="date"
+                                value="{{ old('active_date', optional($photoEvent->active_date)->format('Y-m-d') ?: now()->toDateString()) }}" required
+                                class="w-full rounded-xl border-slate-200 px-4 py-3 text-sm shadow-sm focus:border-amber-500 focus:ring-amber-500">
+                            <p class="mt-1 text-xs text-slate-500">Tanggal ini dicetak pada footer frame; tidak mengubah status event.</p>
+                            @error('active_date')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label for="status" class="mb-2 block text-sm font-semibold text-slate-700">Status event</label>
+                            <select id="status" name="status" required
+                                class="w-full rounded-xl border-slate-200 px-4 py-3 text-sm shadow-sm focus:border-amber-500 focus:ring-amber-500">
+                                <option value="draft" @selected(old('status', $photoEvent->status) === 'draft')>Draft</option>
+                                <option value="published" @selected(old('status', $photoEvent->status) === 'published')>Terbit</option>
+                                <option value="closed" @selected(old('status', $photoEvent->status) === 'closed')>Ditutup</option>
+                            </select>
+                            <p class="mt-1 text-xs text-slate-500">Event ditutup tidak menerima foto baru.</p>
+                            @error('status')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
+                        </div>
                         <div class="sm:col-span-2">
                             <label for="title" class="mb-2 block text-sm font-semibold text-slate-700">Judul event pada frame <span class="text-rose-500">*</span></label>
                             <input id="title" name="title" value="{{ old('title', $photoEvent->title) }}" required maxlength="160"
@@ -144,26 +163,6 @@
                     </div>
                 </section>
 
-                <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-                    <div class="mb-5 flex items-start gap-4">
-                        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-700">
-                            <i class="fas fa-toggle-on"></i>
-                        </div>
-                        <div>
-                            <h2 class="font-bold text-slate-900">Status event</h2>
-                            <p class="mt-1 text-sm text-slate-500">Event draft tetap bisa diuji dari dashboard. Event ditutup tidak menerima foto baru.</p>
-                        </div>
-                    </div>
-                    <label for="status" class="mb-2 block text-sm font-semibold text-slate-700">Status</label>
-                    <select id="status" name="status"
-                        class="w-full rounded-xl border-slate-200 px-4 py-3 text-sm shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:max-w-sm">
-                        <option value="draft" @selected(old('status', $photoEvent->status) === 'draft')>Draft</option>
-                        <option value="published" @selected(old('status', $photoEvent->status) === 'published')>Terbit</option>
-                        <option value="closed" @selected(old('status', $photoEvent->status) === 'closed')>Ditutup</option>
-                    </select>
-                    @error('status')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
-                </section>
-
                 <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
                     @if ($photoEvent->exists)
                         <a href="{{ route('dashboard.photo-events.booth', $photoEvent) }}"
@@ -236,13 +235,19 @@
                 backgroundColor: document.getElementById('frame_background_color'),
                 backgroundColorPicker: document.getElementById('frame_background_color_picker'),
                 backgroundSwatch: document.getElementById('frame-background-swatch'),
+                activeDate: document.getElementById('active_date'),
             };
             const slugIsEditable = {{ $photoEvent->exists ? 'true' : 'false' }};
             let slugWasManuallyChanged = slugIsEditable || fields.slug.value.length > 0;
             const previewSubtitle = document.getElementById('preview-subtitle');
             const updateFrameText = () => {
-                document.getElementById('preview-year').textContent =
-                    fields.name.value.match(/\b20\d{2}\b/)?.[0] || String(new Date().getFullYear());
+                const [year, month, day] = fields.activeDate.value.split('-').map(Number);
+                const activeDate = year && month && day
+                    ? new Date(year, month - 1, day, 12)
+                    : new Date();
+                document.getElementById('preview-year').textContent = String(activeDate.getFullYear());
+                document.getElementById('preview-date').textContent =
+                    activeDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
                 previewSubtitle.textContent =
                     fields.subtitle.value.trim() || fields.title.value.trim() || fields.name.value.trim() || 'Teks footer';
             };
@@ -259,6 +264,7 @@
                 }
                 updateFrameText();
             });
+            fields.activeDate.addEventListener('input', updateFrameText);
 
             const syncColor = (value) => {
                 if (!/^#[0-9a-f]{6}$/i.test(value)) return;

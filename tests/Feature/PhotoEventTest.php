@@ -23,6 +23,7 @@ class PhotoEventTest extends TestCase
             'title' => 'Celebrating Cultures',
             'camera_label' => 'Mutiara Harapan',
             'subtitle' => 'October 14, 2026',
+            'active_date' => '2026-10-14',
             'frame_color' => '#C5A059',
             'frame_background_color' => '#172033',
             'countdown_seconds' => 3,
@@ -36,6 +37,10 @@ class PhotoEventTest extends TestCase
             'status' => 'published',
             'frame_background_color' => '#172033',
         ]);
+        $this->assertSame(
+            '2026-10-14',
+            PhotoEvent::where('slug', 'global-cultural-day-2026')->firstOrFail()->active_date->format('Y-m-d'),
+        );
 
         $this->withoutVite();
         $this->actingAs($admin)
@@ -47,6 +52,7 @@ class PhotoEventTest extends TestCase
             ->assertSee('Foto event ini')
             ->assertSee('All Continents')
             ->assertSee('Aktifkan kamera')
+            ->assertSee('data-active-date="2026-10-14"', false)
             ->assertSee('id="booth-frame-logo"', false)
             ->assertSee('id="ar-canvas"', false)
             ->assertSee('id="select-face-sensitivity"', false)
@@ -62,6 +68,7 @@ class PhotoEventTest extends TestCase
             ->assertSee('Preview frame')
             ->assertSee('id="preview-frame-content"', false)
             ->assertSee('id="preview-year"', false)
+            ->assertSee('id="active_date"', false)
             ->assertSee('background-color: #172033', false);
 
         $this->get(route('dashboard.photo-events.create'))
@@ -69,6 +76,27 @@ class PhotoEventTest extends TestCase
             ->assertSee('id="apply-reference-preset"', false)
             ->assertSee('value="#54172F"', false)
             ->assertSee('value="#D9A978"', false);
+    }
+
+    public function test_photo_event_requires_an_active_date(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->from(route('dashboard.photo-events.create'))
+            ->post(route('dashboard.photo-events.store'), [
+                'name' => 'Cultural Day',
+                'slug' => 'cultural-day',
+                'title' => 'Cultural Day',
+                'camera_label' => 'School',
+                'frame_color' => '#D9A978',
+                'frame_background_color' => '#54172F',
+                'countdown_seconds' => 3,
+                'status' => 'draft',
+            ])
+            ->assertSessionHasErrors('active_date');
+
+        $this->assertDatabaseCount('photo_events', 0);
     }
 
     public function test_non_admin_cannot_access_photo_event_management_or_uploads(): void

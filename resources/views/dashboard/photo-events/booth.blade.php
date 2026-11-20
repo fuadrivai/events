@@ -128,6 +128,7 @@
         data-event-slug="{{ $photoEvent->slug }}"
         data-event-name="{{ $photoEvent->name }}"
         data-event-status="{{ $photoEvent->status }}"
+        data-active-date="{{ optional($photoEvent->active_date)->format('Y-m-d') }}"
         data-upload-url="{{ route('dashboard.photo-events.photos.store', $photoEvent) }}"
         data-csrf="{{ csrf_token() }}"
         data-title="{{ $photoEvent->title }}"

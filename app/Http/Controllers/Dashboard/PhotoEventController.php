@@ -23,6 +23,7 @@ class PhotoEventController extends Controller
             'photoEvent' => new PhotoEvent([
                 'frame_color' => '#D9A978',
                 'frame_background_color' => '#54172F',
+                'active_date' => today(),
                 'countdown_seconds' => 3,
                 'status' => 'draft',
             ]),
@@ -66,6 +67,7 @@ class PhotoEventController extends Controller
             'title' => ['required', 'string', 'max:160'],
             'camera_label' => ['required', 'string', 'max:120'],
             'subtitle' => ['nullable', 'string', 'max:255'],
+            'active_date' => ['required', 'date'],
             'frame_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'frame_background_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'countdown_seconds' => ['required', 'integer', 'between:0,10'],

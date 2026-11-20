@@ -10,6 +10,10 @@ class PhotoEvent extends Model
 {
     protected $guarded = ['id'];
 
+    protected $casts = [
+        'active_date' => 'date',
+    ];
+
     public function getRouteKeyName(): string
     {
         return 'slug';

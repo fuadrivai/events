@@ -9,6 +9,7 @@ if (app) {
         eventSlug: app.dataset.eventSlug,
         eventName: app.dataset.eventName,
         eventStatus: app.dataset.eventStatus,
+        activeDate: app.dataset.activeDate,
         uploadUrl: app.dataset.uploadUrl,
         csrf: app.dataset.csrf,
         title: app.dataset.title,
@@ -369,6 +370,10 @@ if (app) {
         return `#${channels.map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
     };
 
+    const activeDate = config.activeDate
+        ? new Date(`${config.activeDate}T12:00:00`)
+        : new Date();
+
     const composePhoto = async () => {
         await frameLogo.decode();
         const width = 1600;
@@ -460,7 +465,7 @@ if (app) {
         context.font = '800 52px Arial, sans-serif';
         context.fillText(config.title.toUpperCase(), textX, padding + 119, titleMaxWidth);
 
-        const year = config.eventName.match(/\b20\d{2}\b/)?.[0] || String(new Date().getFullYear());
+        const year = String(activeDate.getFullYear());
         const pillWidth = 116;
         const pillX = width - padding - pillWidth;
         context.fillStyle = colorWithOpacity(config.frameColor, 0.16);
@@ -510,7 +515,7 @@ if (app) {
         context.textAlign = 'right';
         context.fillStyle = '#aeb8c9';
         context.font = '500 24px Arial, sans-serif';
-        context.fillText(new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), width - padding - 2, footerY + 54);
+        context.fillText(activeDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), width - padding - 2, footerY + 54);
 
         return new Promise((resolve, reject) => {
             canvas.toBlob((blob) => {
