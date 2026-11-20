@@ -23,6 +23,7 @@ class PhotoEventController extends Controller
             'photoEvent' => new PhotoEvent([
                 'frame_color' => '#D9A978',
                 'frame_background_color' => '#54172F',
+                'frame_theme' => 'classic',
                 'active_date' => today(),
                 'countdown_seconds' => 3,
                 'status' => 'draft',
@@ -70,11 +71,13 @@ class PhotoEventController extends Controller
             'active_date' => ['required', 'date'],
             'frame_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'frame_background_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'frame_theme' => ['sometimes', 'required', 'in:classic,tropical'],
             'countdown_seconds' => ['required', 'integer', 'between:0,10'],
             'status' => ['required', 'in:draft,published,closed'],
         ]);
 
         $validated['subtitle'] = $validated['subtitle'] ?? null;
+        $validated['frame_theme'] = $validated['frame_theme'] ?? $photoEvent?->frame_theme ?? 'classic';
 
         return $validated;
     }

@@ -119,13 +119,22 @@
                             <h2 class="font-bold text-slate-900">Tampilan booth</h2>
                             <p class="mt-1 text-sm text-slate-500">Atur warna, teks, dan durasi hitung mundur. Preview mengikuti hasil foto.</p>
                         </div>
-                        <button id="apply-reference-preset" type="button"
-                            class="ml-auto inline-flex shrink-0 items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-900 transition hover:bg-rose-100">
-                            <i class="fas fa-wand-magic-sparkles"></i> Preset contoh
+                        <button id="apply-summer-preset" type="button"
+                            class="ml-auto inline-flex shrink-0 items-center gap-2 rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-bold text-cyan-900 transition hover:bg-cyan-100">
+                            <i class="fas fa-umbrella-beach"></i> Preset Summer
                         </button>
                     </div>
 
                     <div class="grid gap-5 sm:grid-cols-2">
+                        <div>
+                            <label for="frame_theme" class="mb-2 block text-sm font-semibold text-slate-700">Gaya frame</label>
+                            <select id="frame_theme" name="frame_theme"
+                                class="w-full rounded-xl border-slate-200 px-4 py-3 text-sm shadow-sm focus:border-amber-500 focus:ring-amber-500">
+                                <option value="classic" @selected(old('frame_theme', $photoEvent->frame_theme ?: 'classic') === 'classic')>Classic</option>
+                                <option value="tropical" @selected(old('frame_theme', $photoEvent->frame_theme ?: 'classic') === 'tropical')>Tropical Summer</option>
+                            </select>
+                            @error('frame_theme')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
+                        </div>
                         <div>
                             <label for="frame_background_color" class="mb-2 block text-sm font-semibold text-slate-700">Warna dasar frame <span class="text-rose-500">*</span></label>
                             <div class="flex items-center gap-3">
@@ -189,6 +198,10 @@
                         style="border-color: {{ old('frame_color', $photoEvent->frame_color ?: '#D9A978') }}; background-color: {{ old('frame_background_color', $photoEvent->frame_background_color ?: '#54172F') }}; background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.035) 0px, rgba(255,255,255,.035) 1px, transparent 1px, transparent 10px)">
                         <div id="preview-frame-content" class="overflow-hidden rounded-xl p-2"
                             style="background-color: {{ old('frame_background_color', $photoEvent->frame_background_color ?: '#54172F') }}; background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.035) 0px, rgba(255,255,255,.035) 1px, transparent 1px, transparent 10px)">
+                            <div id="preview-theme-decoration" class="{{ old('frame_theme', $photoEvent->frame_theme ?: 'classic') === 'tropical' ? 'flex' : 'hidden' }} justify-between px-1 pb-1 text-xs" aria-hidden="true">
+                                <span>☀️ 🌊</span>
+                                <span>🌴 🌺</span>
+                            </div>
                             <div class="flex min-h-[58px] items-center gap-2 px-1 pb-2">
                                 <span class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white p-1.5">
                                     <img src="{{ asset('assets/images/logo.png') }}" alt="" class="h-full w-full object-contain">
@@ -236,6 +249,7 @@
                 backgroundColorPicker: document.getElementById('frame_background_color_picker'),
                 backgroundSwatch: document.getElementById('frame-background-swatch'),
                 activeDate: document.getElementById('active_date'),
+                theme: document.getElementById('frame_theme'),
             };
             const slugIsEditable = {{ $photoEvent->exists ? 'true' : 'false' }};
             let slugWasManuallyChanged = slugIsEditable || fields.slug.value.length > 0;
@@ -291,9 +305,15 @@
             fields.backgroundColor.addEventListener('input', () => syncBackgroundColor(fields.backgroundColor.value));
             fields.backgroundColorPicker.addEventListener('input', () => syncBackgroundColor(fields.backgroundColorPicker.value));
             syncBackgroundColor(fields.backgroundColor.value);
-            document.getElementById('apply-reference-preset').addEventListener('click', () => {
-                syncBackgroundColor('#54172F');
-                syncColor('#D9A978');
+            fields.theme.addEventListener('change', () => {
+                document.getElementById('preview-theme-decoration').classList.toggle('hidden', fields.theme.value !== 'tropical');
+                document.getElementById('preview-theme-decoration').classList.toggle('flex', fields.theme.value === 'tropical');
+            });
+            document.getElementById('apply-summer-preset').addEventListener('click', () => {
+                fields.theme.value = 'tropical';
+                fields.theme.dispatchEvent(new Event('change'));
+                syncBackgroundColor('#006B73');
+                syncColor('#FFC857');
             });
 
             fields.title.addEventListener('input', () => {

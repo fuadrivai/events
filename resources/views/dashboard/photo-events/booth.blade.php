@@ -136,6 +136,7 @@
         data-subtitle="{{ $photoEvent->subtitle }}"
         data-frame-color="{{ $photoEvent->frame_color }}"
         data-frame-background-color="{{ $photoEvent->frame_background_color ?: '#54172F' }}"
+        data-frame-theme="{{ $photoEvent->frame_theme ?: 'classic' }}"
         data-mediapipe-assets="{{ asset('vendor/mediapipe') }}"
         data-countdown="{{ $photoEvent->countdown_seconds }}">
         <div class="absolute inset-0 bg-slate-950">

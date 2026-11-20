@@ -17,6 +17,7 @@ if (app) {
         subtitle: app.dataset.subtitle || '',
         frameColor: app.dataset.frameColor,
         frameBackgroundColor: app.dataset.frameBackgroundColor || '#54172F',
+        frameTheme: app.dataset.frameTheme || 'classic',
         mediapipeAssets: app.dataset.mediapipeAssets,
         countdown: Number(app.dataset.countdown),
     };
@@ -516,6 +517,16 @@ if (app) {
         context.fillStyle = '#aeb8c9';
         context.font = '500 24px Arial, sans-serif';
         context.fillText(activeDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), width - padding - 2, footerY + 54);
+
+        if (config.frameTheme === 'tropical') {
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.font = '34px "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
+            context.fillText('☀️', padding / 2, padding / 2);
+            context.fillText('🌴', width - padding / 2, padding / 2);
+            context.fillText('🌊', padding / 2, canvas.height - padding / 2);
+            context.fillText('🌺', width - padding / 2, canvas.height - padding / 2);
+        }
 
         return new Promise((resolve, reject) => {
             canvas.toBlob((blob) => {

@@ -26,6 +26,7 @@ class PhotoEventTest extends TestCase
             'active_date' => '2026-10-14',
             'frame_color' => '#C5A059',
             'frame_background_color' => '#172033',
+            'frame_theme' => 'tropical',
             'countdown_seconds' => 3,
             'status' => 'published',
         ]);
@@ -36,6 +37,7 @@ class PhotoEventTest extends TestCase
             'created_by' => $admin->id,
             'status' => 'published',
             'frame_background_color' => '#172033',
+            'frame_theme' => 'tropical',
         ]);
         $this->assertSame(
             '2026-10-14',
@@ -61,7 +63,8 @@ class PhotoEventTest extends TestCase
             ->assertSee('data-ar-cycle="stickerStyle"', false)
             ->assertSee('data-region-flag="🇮🇩"', false)
             ->assertSee('data-mediapipe-assets=', false)
-            ->assertSee('data-frame-background-color="#172033"', false);
+            ->assertSee('data-frame-background-color="#172033"', false)
+            ->assertSee('data-frame-theme="tropical"', false);
 
         $this->get(route('dashboard.photo-events.edit', 'global-cultural-day-2026'))
             ->assertOk()
@@ -73,7 +76,8 @@ class PhotoEventTest extends TestCase
 
         $this->get(route('dashboard.photo-events.create'))
             ->assertOk()
-            ->assertSee('id="apply-reference-preset"', false)
+            ->assertSee('id="apply-summer-preset"', false)
+            ->assertSee('id="frame_theme"', false)
             ->assertSee('value="#54172F"', false)
             ->assertSee('value="#D9A978"', false);
     }
