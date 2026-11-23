@@ -220,6 +220,101 @@ class PhotoEventTest extends TestCase
             ->assertForbidden();
         $this->get(route('dashboard.photo-events.template', $photoEvent))
             ->assertForbidden();
+        $this->get(route('dashboard.photo-events.photos.download', [$photoEvent, $photo]))
+            ->assertForbidden();
+        $this->delete(route('dashboard.photo-events.photos.delete', [$photoEvent, $photo]))
+            ->assertForbidden();
+        $this->post(route('dashboard.photo-events.photos.bulk', $photoEvent), [
+            'action' => 'delete',
+            'photos' => [$photo->id],
+        ])->assertForbidden();
+    }
+
+    public function test_admin_can_download_and_delete_a_single_photo_after_qr_expiry(): void
+    {
+        Storage::fake('local');
+        $admin = User::factory()->create(['role' => 'admin']);
+        $photoEvent = PhotoEvent::create([
+            'name' => 'Cultural Day',
+            'slug' => 'cultural-day',
+            'title' => 'Cultural Day',
+            'camera_label' => 'School',
+            'frame_color' => '#C5A059',
+            'countdown_seconds' => 3,
+            'status' => 'published',
+        ]);
+        $photo = $photoEvent->photos()->create([
+            'uuid' => '9847db3e-80f0-49f4-93ca-87f2e7237b1c',
+            'token' => str_repeat('c', 64),
+            'path' => 'photo-events/cultural-day/photo.jpg',
+            'mime_type' => 'image/jpeg',
+            'expires_at' => now()->subMinute(),
+        ]);
+        Storage::disk('local')->put($photo->path, 'photo-content');
+
+        $this->actingAs($admin)
+            ->get(route('dashboard.photo-events.photos.download', [$photoEvent, $photo]))
+            ->assertDownload('photo-'.$photo->uuid.'.jpg');
+        Storage::disk('local')->assertExists($photo->path);
+
+        $this->delete(route('dashboard.photo-events.photos.delete', [$photoEvent, $photo]))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('photos', ['id' => $photo->id]);
+        Storage::disk('local')->assertMissing($photo->path);
+    }
+
+    public function test_admin_can_bulk_download_delete_and_view_photo_qr_codes(): void
+    {
+        Storage::fake('local');
+        $admin = User::factory()->create(['role' => 'admin']);
+        $photoEvent = PhotoEvent::create([
+            'name' => 'Cultural Day',
+            'slug' => 'cultural-day',
+            'title' => 'Cultural Day',
+            'camera_label' => 'School',
+            'frame_color' => '#C5A059',
+            'countdown_seconds' => 3,
+            'status' => 'published',
+        ]);
+        $photos = collect([
+            ['uuid' => '9847db3e-80f0-49f4-93ca-87f2e7237b1c', 'token' => str_repeat('d', 64), 'path' => 'photo-events/cultural-day/one.jpg'],
+            ['uuid' => '1847db3e-80f0-49f4-93ca-87f2e7237b1c', 'token' => str_repeat('e', 64), 'path' => 'photo-events/cultural-day/two.jpg'],
+        ])->map(function (array $data) use ($photoEvent) {
+            $photo = $photoEvent->photos()->create([
+                ...$data,
+                'mime_type' => 'image/jpeg',
+                'expires_at' => now()->addDays(30),
+            ]);
+            Storage::disk('local')->put($photo->path, 'photo-content');
+
+            return $photo;
+        });
+        $photoIds = $photos->pluck('id')->all();
+
+        $this->actingAs($admin)
+            ->post(route('dashboard.photo-events.photos.bulk', $photoEvent), [
+                'action' => 'download',
+                'photos' => $photoIds,
+            ])
+            ->assertDownload();
+
+        $this->withoutVite()
+            ->get(route('dashboard.photo-events.edit', $photoEvent))
+            ->assertOk()
+            ->assertSee('id="photo-qr-modal"', false)
+            ->assertSee('data-photo-qr-url="'.route('photo.download', $photos->first()->token).'"', false)
+            ->assertSee('Download terpilih (ZIP)');
+
+        $this->post(route('dashboard.photo-events.photos.bulk', $photoEvent), [
+            'action' => 'delete',
+            'photos' => $photoIds,
+        ])->assertRedirect();
+
+        $this->assertDatabaseCount('photos', 0);
+        foreach ($photos as $photo) {
+            Storage::disk('local')->assertMissing($photo->path);
+        }
     }
 
     public function test_admin_can_replace_template_and_persist_editor_layout(): void

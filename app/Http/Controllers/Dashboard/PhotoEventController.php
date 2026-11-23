@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\Photo;
 use App\Models\PhotoEvent;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -106,6 +108,110 @@ class PhotoEventController extends Controller
             'Cache-Control' => 'private, no-store',
             'X-Content-Type-Options' => 'nosniff',
         ], 'inline');
+    }
+
+    public function photoDownload(PhotoEvent $photoEvent, Photo $photo)
+    {
+        abort_unless($photo->photo_event_id === $photoEvent->id, 404);
+
+        $disk = Storage::disk('local');
+        if (! $disk->exists($photo->path)) {
+            report(new \RuntimeException('A photo event download points to a missing image.'));
+            abort(404, 'File foto tidak ditemukan.');
+        }
+
+        return $disk->download(
+            $photo->path,
+            'photo-'.$photo->uuid.'.'.$this->photoExtension($photo),
+            ['Cache-Control' => 'private, no-store']
+        );
+    }
+
+    public function deletePhoto(PhotoEvent $photoEvent, Photo $photo)
+    {
+        abort_unless($photo->photo_event_id === $photoEvent->id, 404);
+
+        $disk = Storage::disk('local');
+        if ($disk->exists($photo->path) && ! $disk->delete($photo->path)) {
+            report(new \RuntimeException('A photo event image could not be deleted.'));
+
+            return back()->withErrors(['photos' => 'Foto gagal dihapus dari penyimpanan.']);
+        }
+
+        if (! $photo->delete()) {
+            report(new \RuntimeException('A photo event record could not be deleted.'));
+
+            return back()->withErrors(['photos' => 'Data foto gagal dihapus.']);
+        }
+
+        return back()->with('success', 'Foto berhasil dihapus.');
+    }
+
+    public function bulkPhotoAction(Request $request, PhotoEvent $photoEvent)
+    {
+        $data = $request->validate([
+            'action' => ['required', 'in:download,delete'],
+            'photos' => ['required', 'array', 'min:1', 'max:200'],
+            'photos.*' => ['required', 'integer', 'distinct'],
+        ]);
+
+        $photos = $photoEvent->photos()->whereIn('id', $data['photos'])->get();
+        if ($photos->count() !== count($data['photos'])) {
+            return back()->withErrors(['photos' => 'Pilihan foto tidak valid untuk event ini.']);
+        }
+
+        if ($data['action'] === 'delete') {
+            return $this->deletePhotos($photos);
+        }
+
+        if (! class_exists(\ZipArchive::class)) {
+            report(new \RuntimeException('ZipArchive is required for bulk photo downloads.'));
+
+            return back()->withErrors(['photos' => 'Server belum mendukung unduhan ZIP.']);
+        }
+
+        $disk = Storage::disk('local');
+        foreach ($photos as $photo) {
+            if (! $disk->exists($photo->path)) {
+                return back()->withErrors(['photos' => 'Satu atau lebih file foto tidak tersedia, jadi ZIP tidak dibuat.']);
+            }
+        }
+
+        $archivePath = tempnam(sys_get_temp_dir(), 'photo-event-');
+        if ($archivePath === false) {
+            report(new \RuntimeException('A temporary photo archive could not be created.'));
+            abort(500, 'ZIP foto tidak dapat disiapkan.');
+        }
+
+        $archive = new \ZipArchive();
+        $opened = $archive->open($archivePath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        if ($opened !== true) {
+            $this->removeTemporaryArchive($archivePath);
+            report(new \RuntimeException('A photo archive could not be opened.'));
+            abort(500, 'ZIP foto tidak dapat dibuat.');
+        }
+
+        foreach ($photos as $photo) {
+            if (! $archive->addFile(
+                $disk->path($photo->path),
+                'photo-'.$photo->uuid.'.'.$this->photoExtension($photo)
+            )) {
+                $archive->close();
+                $this->removeTemporaryArchive($archivePath);
+                report(new \RuntimeException('A photo could not be added to the bulk archive.'));
+                abort(500, 'Salah satu foto gagal dimasukkan ke ZIP.');
+            }
+        }
+
+        if (! $archive->close()) {
+            $this->removeTemporaryArchive($archivePath);
+            report(new \RuntimeException('A photo archive could not be finalized.'));
+            abort(500, 'ZIP foto gagal diselesaikan.');
+        }
+
+        return response()
+            ->download($archivePath, $photoEvent->slug.'-photos-'.now()->format('Ymd-His').'.zip')
+            ->deleteFileAfterSend(true);
     }
 
     public function update(Request $request, PhotoEvent $photoEvent)
@@ -233,5 +339,55 @@ class PhotoEventController extends Controller
             }
         });
         $validator->validate();
+    }
+
+    private function deletePhotos(EloquentCollection $photos): RedirectResponse
+    {
+        $disk = Storage::disk('local');
+        $deleted = 0;
+        $failed = 0;
+
+        foreach ($photos as $photo) {
+            if ($disk->exists($photo->path) && ! $disk->delete($photo->path)) {
+                report(new \RuntimeException('A photo event image could not be deleted.'));
+                $failed++;
+                continue;
+            }
+
+            if ($photo->delete()) {
+                $deleted++;
+                continue;
+            }
+
+            report(new \RuntimeException('A photo event record could not be deleted.'));
+            $failed++;
+        }
+
+        if ($deleted === 0) {
+            return back()->withErrors(['photos' => 'Tidak ada foto yang berhasil dihapus.']);
+        }
+
+        $response = back()->with('success', "{$deleted} foto berhasil dihapus.");
+        if ($failed > 0) {
+            $response->withErrors(['photos' => "{$failed} foto gagal dihapus."]);
+        }
+
+        return $response;
+    }
+
+    private function photoExtension(Photo $photo): string
+    {
+        return match ($photo->mime_type) {
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+            default => 'jpg',
+        };
+    }
+
+    private function removeTemporaryArchive(string $path): void
+    {
+        if (is_file($path) && ! unlink($path)) {
+            report(new \RuntimeException('A temporary photo archive could not be removed.'));
+        }
     }
 }

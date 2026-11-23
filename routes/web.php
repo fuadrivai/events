@@ -113,6 +113,12 @@ Route::middleware(['auth', 'admin'])
         Route::put('/photo-events/{photoEvent}', [PhotoEventController::class, 'update'])->name('photo-events.update');
         Route::get('/photo-events/{photoEvent}/photos/{photo}/preview', [PhotoEventController::class, 'photoPreview'])
             ->name('photo-events.photos.preview');
+        Route::get('/photo-events/{photoEvent}/photos/{photo}/download', [PhotoEventController::class, 'photoDownload'])
+            ->name('photo-events.photos.download');
+        Route::delete('/photo-events/{photoEvent}/photos/{photo}', [PhotoEventController::class, 'deletePhoto'])
+            ->name('photo-events.photos.delete');
+        Route::post('/photo-events/{photoEvent}/photos/bulk', [PhotoEventController::class, 'bulkPhotoAction'])
+            ->name('photo-events.photos.bulk');
         Route::get('/photo-events/{photoEvent}/booth', [PhotoEventController::class, 'booth'])
             ->name('photo-events.booth');
         Route::post('/photo-events/{photoEvent}/photos', [PhotoUploadController::class, 'store'])
