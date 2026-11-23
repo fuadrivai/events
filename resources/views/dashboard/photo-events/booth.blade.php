@@ -137,6 +137,9 @@
         data-frame-color="{{ $photoEvent->frame_color }}"
         data-frame-background-color="{{ $photoEvent->frame_background_color ?: '#54172F' }}"
         data-frame-theme="{{ $photoEvent->frame_theme ?: 'classic' }}"
+        data-frame-mode="{{ $photoEvent->frame_mode ?: 'classic' }}"
+        data-template-url="{{ $photoEvent->frame_mode === 'template' && $photoEvent->template_path ? route('dashboard.photo-events.template', $photoEvent) : '' }}"
+        data-frame-layout="{{ json_encode($photoEvent->frame_layout ?: \App\Models\PhotoEvent::defaultFrameLayout()) }}"
         data-mediapipe-assets="{{ asset('vendor/mediapipe') }}"
         data-countdown="{{ $photoEvent->countdown_seconds }}">
         <div class="absolute inset-0 bg-slate-950">

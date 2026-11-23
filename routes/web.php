@@ -109,6 +109,7 @@ Route::middleware(['auth', 'admin'])
         Route::get('/photo-events/create', [PhotoEventController::class, 'create'])->name('photo-events.create');
         Route::post('/photo-events', [PhotoEventController::class, 'store'])->name('photo-events.store');
         Route::get('/photo-events/{photoEvent}/edit', [PhotoEventController::class, 'edit'])->name('photo-events.edit');
+        Route::get('/photo-events/{photoEvent}/template', [PhotoEventController::class, 'template'])->name('photo-events.template');
         Route::put('/photo-events/{photoEvent}', [PhotoEventController::class, 'update'])->name('photo-events.update');
         Route::get('/photo-events/{photoEvent}/photos/{photo}/preview', [PhotoEventController::class, 'photoPreview'])
             ->name('photo-events.photos.preview');

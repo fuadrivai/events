@@ -15,7 +15,9 @@ class PhotoEventTest extends TestCase
 
     public function test_admin_can_create_a_photo_event(): void
     {
+        Storage::fake('local');
         $admin = User::factory()->create(['role' => 'admin']);
+        $layout = PhotoEvent::defaultFrameLayout();
 
         $response = $this->actingAs($admin)->post(route('dashboard.photo-events.store'), [
             'name' => 'Global Cultural Day 2026',
@@ -26,12 +28,17 @@ class PhotoEventTest extends TestCase
             'active_date' => '2026-10-14',
             'frame_color' => '#C5A059',
             'frame_background_color' => '#172033',
+            'frame_mode' => 'template',
             'frame_theme' => 'tropical',
             'countdown_seconds' => 3,
             'status' => 'published',
+            'template' => UploadedFile::fake()->image('summer-frame.png', 1024, 768),
+            'frame_layout' => json_encode($layout),
         ]);
 
         $response->assertRedirect(route('dashboard.photo-events.edit', 'global-cultural-day-2026'));
+        $photoEvent = PhotoEvent::where('slug', 'global-cultural-day-2026')->firstOrFail();
+        Storage::disk('local')->assertExists($photoEvent->template_path);
         $this->assertDatabaseHas('photo_events', [
             'slug' => 'global-cultural-day-2026',
             'created_by' => $admin->id,
@@ -55,6 +62,9 @@ class PhotoEventTest extends TestCase
             ->assertSee('All Continents')
             ->assertSee('Aktifkan kamera')
             ->assertSee('data-active-date="2026-10-14"', false)
+            ->assertSee('data-frame-mode="template"', false)
+            ->assertSee('data-template-url=', false)
+            ->assertSee('data-frame-layout=', false)
             ->assertSee('id="booth-frame-logo"', false)
             ->assertSee('id="ar-canvas"', false)
             ->assertSee('id="select-face-sensitivity"', false)
@@ -74,12 +84,16 @@ class PhotoEventTest extends TestCase
             ->assertSee('Hawaiian / Tropical')
             ->assertSee('id="preview-theme-decoration"', false)
             ->assertSee('id="active_date"', false)
+            ->assertSee('id="template-editor-canvas"', false)
+            ->assertSee('id="layout-font-size"', false)
+            ->assertSee('id="layout-font-family"', false)
             ->assertSee('background-color: #172033', false);
 
         $this->get(route('dashboard.photo-events.create'))
             ->assertOk()
             ->assertSee('id="apply-summer-preset"', false)
             ->assertSee('id="frame_theme"', false)
+            ->assertSee('id="frame_mode"', false)
             ->assertSee('value="#54172F"', false)
             ->assertSee('value="#D9A978"', false);
     }
@@ -97,10 +111,71 @@ class PhotoEventTest extends TestCase
                 'camera_label' => 'School',
                 'frame_color' => '#D9A978',
                 'frame_background_color' => '#54172F',
+                'frame_mode' => 'classic',
                 'countdown_seconds' => 3,
                 'status' => 'draft',
+                'frame_layout' => json_encode(PhotoEvent::defaultFrameLayout()),
             ])
             ->assertSessionHasErrors('active_date');
+
+        $this->assertDatabaseCount('photo_events', 0);
+    }
+
+    public function test_admin_can_create_photo_event_with_custom_color_mode_without_template(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->post(route('dashboard.photo-events.store'), [
+                'name' => 'Classic Event',
+                'slug' => 'classic-event',
+                'title' => 'Classic Event',
+                'camera_label' => 'School',
+                'active_date' => '2026-11-23',
+                'frame_color' => '#D9A978',
+                'frame_background_color' => '#54172F',
+                'frame_mode' => 'classic',
+                'frame_theme' => 'classic',
+                'countdown_seconds' => 3,
+                'status' => 'draft',
+                'frame_layout' => json_encode(PhotoEvent::defaultFrameLayout()),
+            ])
+            ->assertRedirect(route('dashboard.photo-events.edit', 'classic-event'));
+
+        $this->assertDatabaseHas('photo_events', [
+            'slug' => 'classic-event',
+            'frame_mode' => 'classic',
+            'template_path' => null,
+        ]);
+        $photoEvent = PhotoEvent::where('slug', 'classic-event')->firstOrFail();
+        $this->actingAs($admin)
+            ->get(route('dashboard.photo-events.booth', $photoEvent))
+            ->assertOk()
+            ->assertSee('data-frame-mode="classic"', false)
+            ->assertSee('data-template-url=""', false);
+    }
+
+    public function test_template_mode_requires_a_template_upload(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->from(route('dashboard.photo-events.create'))
+            ->post(route('dashboard.photo-events.store'), [
+                'name' => 'Template Event',
+                'slug' => 'template-event',
+                'title' => 'Template Event',
+                'camera_label' => 'School',
+                'active_date' => '2026-11-23',
+                'frame_color' => '#D9A978',
+                'frame_background_color' => '#54172F',
+                'frame_mode' => 'template',
+                'frame_theme' => 'classic',
+                'countdown_seconds' => 3,
+                'status' => 'draft',
+                'frame_layout' => json_encode(PhotoEvent::defaultFrameLayout()),
+            ])
+            ->assertSessionHasErrors('template');
 
         $this->assertDatabaseCount('photo_events', 0);
     }
@@ -115,9 +190,11 @@ class PhotoEventTest extends TestCase
             'title' => 'Cultural Day',
             'camera_label' => 'School',
             'frame_color' => '#C5A059',
+            'template_path' => 'photo-event-templates/cultural-day/frame.png',
             'countdown_seconds' => 3,
             'status' => 'published',
         ]);
+        Storage::disk('local')->put('photo-event-templates/cultural-day/frame.png', 'template');
         $photo = $photoEvent->photos()->create([
             'uuid' => '9847db3e-80f0-49f4-93ca-87f2e7237b1c',
             'token' => str_repeat('b', 64),
@@ -140,6 +217,61 @@ class PhotoEventTest extends TestCase
 
         $this->get(route('dashboard.photo-events.photos.preview', [$photoEvent, $photo]))
             ->assertForbidden();
+        $this->get(route('dashboard.photo-events.template', $photoEvent))
+            ->assertForbidden();
+    }
+
+    public function test_admin_can_replace_template_and_persist_editor_layout(): void
+    {
+        Storage::fake('local');
+        $admin = User::factory()->create(['role' => 'admin']);
+        $layout = PhotoEvent::defaultFrameLayout();
+        $layout['elements']['title']['x'] = 0.3;
+        $photoEvent = PhotoEvent::create([
+            'name' => 'Cultural Day',
+            'slug' => 'cultural-day',
+            'title' => 'Cultural Day',
+            'camera_label' => 'School',
+            'subtitle' => 'Celebration',
+            'active_date' => '2026-11-23',
+            'frame_color' => '#C5A059',
+            'frame_background_color' => '#172033',
+            'frame_mode' => 'template',
+            'frame_layout' => PhotoEvent::defaultFrameLayout(),
+            'template_path' => 'photo-event-templates/cultural-day/old.png',
+            'countdown_seconds' => 3,
+            'status' => 'published',
+        ]);
+        Storage::disk('local')->put($photoEvent->template_path, 'old');
+
+        $this->actingAs($admin)
+            ->put(route('dashboard.photo-events.update', $photoEvent), [
+                'name' => $photoEvent->name,
+                'slug' => $photoEvent->slug,
+                'title' => $photoEvent->title,
+                'camera_label' => $photoEvent->camera_label,
+                'subtitle' => $photoEvent->subtitle,
+                'active_date' => '2026-11-23',
+                'frame_color' => '#C5A059',
+                'frame_background_color' => '#172033',
+                'frame_mode' => 'template',
+                'frame_theme' => 'classic',
+                'countdown_seconds' => 3,
+                'status' => 'published',
+                'template' => UploadedFile::fake()->image('new-frame.png', 1024, 768),
+                'frame_layout' => json_encode($layout),
+            ])
+            ->assertRedirect();
+
+        $photoEvent->refresh();
+        $this->assertSame(0.3, $photoEvent->frame_layout['elements']['title']['x']);
+        Storage::disk('local')->assertExists($photoEvent->template_path);
+        Storage::disk('local')->assertMissing('photo-event-templates/cultural-day/old.png');
+
+        $this->actingAs($admin)
+            ->get(route('dashboard.photo-events.template', $photoEvent))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'image/png');
     }
 
     public function test_admin_upload_gets_a_download_link_and_retries_are_idempotent(): void

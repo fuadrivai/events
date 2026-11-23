@@ -18,6 +18,8 @@ if (app) {
         frameColor: app.dataset.frameColor,
         frameBackgroundColor: app.dataset.frameBackgroundColor || '#54172F',
         frameTheme: app.dataset.frameTheme || 'classic',
+        templateUrl: app.dataset.templateUrl || '',
+        frameLayout: JSON.parse(app.dataset.frameLayout || '{}'),
         mediapipeAssets: app.dataset.mediapipeAssets,
         countdown: Number(app.dataset.countdown),
     };
@@ -36,6 +38,8 @@ if (app) {
     const gallery = document.getElementById('photo-gallery');
     const galleryEmpty = document.getElementById('gallery-empty');
     const frameLogo = document.getElementById('booth-frame-logo');
+    const frameTemplate = new Image();
+    if (config.templateUrl) frameTemplate.src = config.templateUrl;
     const stickers = new Set();
     const activeTheme = { name: 'All Continents', icon: '🌍', flag: '🌍', sticker: '' };
     let db;
@@ -463,7 +467,100 @@ if (app) {
         context.restore();
     };
 
+    const composeTemplatePhoto = async () => {
+        await Promise.all([frameLogo.decode(), frameTemplate.decode()]);
+        const width = 1600;
+        const height = Math.round(width * frameTemplate.naturalHeight / frameTemplate.naturalWidth);
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext('2d');
+        const photo = config.frameLayout.photo;
+        const photoX = photo.x * width;
+        const photoY = photo.y * height;
+        const photoWidth = photo.width * width;
+        const photoHeight = photo.height * height;
+
+        context.fillStyle = config.frameBackgroundColor;
+        context.fillRect(0, 0, width, height);
+        context.save();
+        context.beginPath();
+        context.rect(photoX, photoY, photoWidth, photoHeight);
+        context.clip();
+        drawCover(context, video, photoX, photoY, photoWidth, photoHeight);
+        if (arCanvas.width && arCanvas.height) {
+            drawCover(context, arCanvas, photoX, photoY, photoWidth, photoHeight);
+        }
+        const selectedStickers = [activeTheme.sticker, ...stickers].filter(Boolean);
+        if (selectedStickers.length) {
+            const stickerSize = Math.min(96, Math.floor(photoWidth / (selectedStickers.length + 2)));
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.font = `${stickerSize}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
+            context.shadowColor = 'rgba(0, 0, 0, .45)';
+            context.shadowBlur = 12;
+            const gap = stickerSize * 1.25;
+            const startX = photoX + photoWidth / 2 - (selectedStickers.length - 1) * gap / 2;
+            selectedStickers.forEach((sticker, index) => {
+                context.fillText(sticker, startX + index * gap, photoY + stickerSize * 0.9);
+            });
+        }
+        context.restore();
+
+        context.drawImage(frameTemplate, 0, 0, width, height);
+
+        const logo = config.frameLayout.elements.logo;
+        const logoSize = logo.width * width;
+        const logoScale = Math.min(logoSize / frameLogo.naturalWidth, logoSize / frameLogo.naturalHeight);
+        const logoWidth = frameLogo.naturalWidth * logoScale;
+        const logoHeight = frameLogo.naturalHeight * logoScale;
+        context.drawImage(
+            frameLogo,
+            logo.x * width + (logoSize - logoWidth) / 2,
+            logo.y * height + (logoSize - logoHeight) / 2,
+            logoWidth,
+            logoHeight,
+        );
+
+        const activeDate = config.activeDate
+            ? new Date(`${config.activeDate}T12:00:00`)
+            : new Date();
+        const textValues = {
+            school: config.label || '',
+            title: config.title || config.eventName,
+            subtitle: config.subtitle || config.title || config.eventName,
+            date: activeDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+        };
+        ['school', 'title', 'subtitle', 'date'].forEach((key) => {
+            const item = config.frameLayout.elements[key];
+            const text = textValues[key];
+            if (!item || !text) return;
+            const boxWidth = item.width * width;
+            const x = item.x * width + (item.align === 'center' ? boxWidth / 2 : item.align === 'right' ? boxWidth : 0);
+            context.textAlign = item.align;
+            context.textBaseline = 'top';
+            context.fillStyle = item.color;
+            context.font = `${key === 'date' ? '500' : '700'} ${item.fontSize}px "${item.fontFamily}", sans-serif`;
+            context.shadowColor = 'rgba(0, 0, 0, .35)';
+            context.shadowBlur = 3;
+            context.fillText(text, x, item.y * height, boxWidth);
+        });
+        context.shadowBlur = 0;
+
+        return new Promise((resolve, reject) => {
+            canvas.toBlob((blob) => {
+                if (!blob) {
+                    reject(new Error('Browser gagal membuat file foto.'));
+                    return;
+                }
+                resolve(blob);
+            }, 'image/jpeg', 0.94);
+        });
+    };
+
     const composePhoto = async () => {
+        if (config.templateUrl) return composeTemplatePhoto();
+
         await frameLogo.decode();
         const width = 1600;
         const padding = 48;
