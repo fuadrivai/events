@@ -105,6 +105,7 @@ class PhotoEventTest extends TestCase
 
     public function test_non_admin_cannot_access_photo_event_management_or_uploads(): void
     {
+        Storage::fake('local');
         $user = User::factory()->create(['role' => 'user', 'is_admin' => false]);
         $photoEvent = PhotoEvent::create([
             'name' => 'Cultural Day',
@@ -115,6 +116,14 @@ class PhotoEventTest extends TestCase
             'countdown_seconds' => 3,
             'status' => 'published',
         ]);
+        $photo = $photoEvent->photos()->create([
+            'uuid' => '9847db3e-80f0-49f4-93ca-87f2e7237b1c',
+            'token' => str_repeat('b', 64),
+            'path' => 'photo-events/cultural-day/photo.jpg',
+            'mime_type' => 'image/jpeg',
+            'expires_at' => now()->addDays(30),
+        ]);
+        Storage::disk('local')->put($photo->path, 'image');
 
         $this->actingAs($user)
             ->get(route('dashboard.photo-events.index'))
@@ -125,6 +134,9 @@ class PhotoEventTest extends TestCase
                 'photo_uuid' => '9847db3e-80f0-49f4-93ca-87f2e7237b1c',
                 'photo' => UploadedFile::fake()->image('photo.jpg'),
             ])
+            ->assertForbidden();
+
+        $this->get(route('dashboard.photo-events.photos.preview', [$photoEvent, $photo]))
             ->assertForbidden();
     }
 
@@ -155,6 +167,7 @@ class PhotoEventTest extends TestCase
         $downloadUrl = $response->json('download_url');
         $photo = $photoEvent->photos()->firstOrFail();
         Storage::disk('local')->assertExists($photo->path);
+        $this->assertSame("photo-events/{$photoEvent->slug}/{$photoUuid}.jpg", $photo->path);
         $this->assertStringContainsString($photo->token, $downloadUrl);
 
         $this->actingAs($admin)
@@ -163,6 +176,19 @@ class PhotoEventTest extends TestCase
             ->assertJsonPath('download_url', $downloadUrl);
 
         $this->get($downloadUrl)->assertOk();
+
+        $this->withoutVite()
+            ->get(route('dashboard.photo-events.edit', $photoEvent))
+            ->assertOk()
+            ->assertSee('Foto tersimpan')
+            ->assertSee($photoUuid)
+            ->assertSee('QR aktif')
+            ->assertSee(route('dashboard.photo-events.photos.preview', [$photoEvent, $photo]), false);
+
+        $this->get(route('dashboard.photo-events.photos.preview', [$photoEvent, $photo]))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'image/jpeg')
+            ->assertHeader('Cache-Control', 'no-store, private');
     }
 
     public function test_expired_photo_download_link_is_not_available(): void

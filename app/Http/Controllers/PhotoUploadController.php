@@ -40,7 +40,7 @@ class PhotoUploadController extends Controller
         $file = $request->file('photo');
         $extension = $file->guessExtension() ?: 'jpg';
         $path = $file->storeAs(
-            'photo-events/'.$photoEvent->id,
+            'photo-events/'.$photoEvent->slug,
             $validated['photo_uuid'].'.'.$extension,
             'local'
         );

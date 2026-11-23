@@ -110,6 +110,8 @@ Route::middleware(['auth', 'admin'])
         Route::post('/photo-events', [PhotoEventController::class, 'store'])->name('photo-events.store');
         Route::get('/photo-events/{photoEvent}/edit', [PhotoEventController::class, 'edit'])->name('photo-events.edit');
         Route::put('/photo-events/{photoEvent}', [PhotoEventController::class, 'update'])->name('photo-events.update');
+        Route::get('/photo-events/{photoEvent}/photos/{photo}/preview', [PhotoEventController::class, 'photoPreview'])
+            ->name('photo-events.photos.preview');
         Route::get('/photo-events/{photoEvent}/booth', [PhotoEventController::class, 'booth'])
             ->name('photo-events.booth');
         Route::post('/photo-events/{photoEvent}/photos', [PhotoUploadController::class, 'store'])

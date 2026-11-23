@@ -232,6 +232,87 @@
                 </div>
             </aside>
         </div>
+
+        @if ($photoEvent->exists)
+            <section class="mx-auto mt-8 max-w-6xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                <div class="flex flex-col gap-3 border-b border-slate-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+                    <div>
+                        <h2 class="font-bold text-slate-900">Foto tersimpan</h2>
+                        <p class="mt-1 text-sm text-slate-500">
+                            {{ $photos->total() }} foto · folder untuk foto baru
+                            <code class="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-700">photo-events/{{ $photoEvent->slug }}</code>
+                        </p>
+                    </div>
+                    <a href="{{ route('dashboard.photo-events.booth', $photoEvent) }}"
+                        class="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-700">
+                        <i class="fas fa-camera"></i> Buka booth
+                    </a>
+                </div>
+
+                @if ($photos->isEmpty())
+                    <div class="px-6 py-14 text-center sm:px-8">
+                        <span class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-xl text-slate-400">
+                            <i class="fas fa-images"></i>
+                        </span>
+                        <p class="mt-4 text-sm font-semibold text-slate-700">Belum ada foto di server</p>
+                        <p class="mt-1 text-xs text-slate-500">Foto akan muncul di sini setelah berhasil diunggah dari booth.</p>
+                    </div>
+                @else
+                    <div class="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:p-8">
+                        @foreach ($photos as $photo)
+                            <article class="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                                @if ($photo->file_available)
+                                    <a href="{{ route('dashboard.photo-events.photos.preview', [$photoEvent, $photo]) }}"
+                                        target="_blank" rel="noopener" class="group relative block aspect-[4/3] overflow-hidden bg-slate-200">
+                                        <img src="{{ route('dashboard.photo-events.photos.preview', [$photoEvent, $photo]) }}"
+                                            alt="Foto {{ $photo->created_at->format('d M Y H:i') }}"
+                                            loading="lazy"
+                                            class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
+                                        <span class="absolute inset-0 flex items-center justify-center bg-slate-950/0 text-white opacity-0 transition group-hover:bg-slate-950/25 group-hover:opacity-100">
+                                            <i class="fas fa-up-right-and-down-left-from-center"></i>
+                                        </span>
+                                    </a>
+                                @else
+                                    <div class="flex aspect-[4/3] flex-col items-center justify-center bg-rose-50 text-rose-400">
+                                        <i class="fas fa-image-slash text-2xl"></i>
+                                        <span class="mt-2 text-xs font-semibold">File tidak ditemukan</span>
+                                    </div>
+                                @endif
+                                <div class="p-3.5">
+                                    <div class="flex items-start justify-between gap-2">
+                                        <div class="min-w-0">
+                                            <p class="truncate text-xs font-bold text-slate-800">{{ $photo->created_at->format('d M Y · H:i') }}</p>
+                                            <p class="mt-1 truncate font-mono text-[10px] text-slate-400">{{ $photo->uuid }}</p>
+                                        </div>
+                                        @if ($photo->expires_at->isFuture())
+                                            <span class="shrink-0 rounded-full bg-emerald-100 px-2 py-1 text-[9px] font-bold text-emerald-700">QR aktif</span>
+                                        @else
+                                            <span class="shrink-0 rounded-full bg-slate-200 px-2 py-1 text-[9px] font-bold text-slate-600">QR kedaluwarsa</span>
+                                        @endif
+                                    </div>
+                                    <div class="mt-3 flex items-center justify-between border-t border-slate-200 pt-3">
+                                        <span class="text-[10px] text-slate-500">{{ $photo->mime_type }}</span>
+                                        @if ($photo->file_available && $photo->expires_at->isFuture())
+                                            <a href="{{ route('photo.download', $photo->token) }}"
+                                                class="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 hover:text-amber-800">
+                                                <i class="fas fa-download"></i> Unduh
+                                            </a>
+                                        @else
+                                            <span class="text-[10px] text-slate-400">{{ $photo->file_available ? 'Link unduh habis' : 'File tidak tersedia' }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </article>
+                        @endforeach
+                    </div>
+                    @if ($photos->hasPages())
+                        <div class="border-t border-slate-100 px-6 py-4 sm:px-8">
+                            {{ $photos->links() }}
+                        </div>
+                    @endif
+                @endif
+            </section>
+        @endif
     </div>
 
     <script>

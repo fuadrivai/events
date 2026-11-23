@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Models\Photo;
 use App\Models\PhotoEvent;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class PhotoEventController extends Controller
 {
@@ -45,7 +47,33 @@ class PhotoEventController extends Controller
 
     public function edit(PhotoEvent $photoEvent)
     {
-        return view('dashboard.photo-events.form', compact('photoEvent'));
+        $photos = $photoEvent->photos()
+            ->latest()
+            ->paginate(12);
+
+        $photos->getCollection()->transform(function (Photo $photo) {
+            $photo->file_available = Storage::disk('local')->exists($photo->path);
+
+            return $photo;
+        });
+
+        return view('dashboard.photo-events.form', compact('photoEvent', 'photos'));
+    }
+
+    public function photoPreview(PhotoEvent $photoEvent, Photo $photo)
+    {
+        abort_unless($photo->photo_event_id === $photoEvent->id, 404);
+
+        $disk = Storage::disk('local');
+        if (! $disk->exists($photo->path)) {
+            report(new \RuntimeException('A photo event preview points to a missing image.'));
+            abort(404, 'File foto tidak ditemukan.');
+        }
+
+        return $disk->response($photo->path, null, [
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ], 'inline');
     }
 
     public function update(Request $request, PhotoEvent $photoEvent)
