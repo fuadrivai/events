@@ -121,7 +121,7 @@
                         </div>
                         <button id="apply-summer-preset" type="button"
                             class="ml-auto inline-flex shrink-0 items-center gap-2 rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-bold text-cyan-900 transition hover:bg-cyan-100">
-                            <i class="fas fa-umbrella-beach"></i> Preset Summer
+                            <i class="fas fa-umbrella-beach"></i> Preset Hawaiian
                         </button>
                     </div>
 
@@ -131,8 +131,9 @@
                             <select id="frame_theme" name="frame_theme"
                                 class="w-full rounded-xl border-slate-200 px-4 py-3 text-sm shadow-sm focus:border-amber-500 focus:ring-amber-500">
                                 <option value="classic" @selected(old('frame_theme', $photoEvent->frame_theme ?: 'classic') === 'classic')>Classic</option>
-                                <option value="tropical" @selected(old('frame_theme', $photoEvent->frame_theme ?: 'classic') === 'tropical')>Tropical Summer</option>
+                                <option value="tropical" @selected(old('frame_theme', $photoEvent->frame_theme ?: 'classic') === 'tropical')>Hawaiian / Tropical</option>
                             </select>
+                            <p class="mt-1 text-xs text-slate-500">Ornamen bunga, daun palem, matahari, dan ombak ikut tercetak di frame.</p>
                             @error('frame_theme')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
                         </div>
                         <div>
@@ -198,9 +199,10 @@
                         style="border-color: {{ old('frame_color', $photoEvent->frame_color ?: '#D9A978') }}; background-color: {{ old('frame_background_color', $photoEvent->frame_background_color ?: '#54172F') }}; background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.035) 0px, rgba(255,255,255,.035) 1px, transparent 1px, transparent 10px)">
                         <div id="preview-frame-content" class="overflow-hidden rounded-xl p-2"
                             style="background-color: {{ old('frame_background_color', $photoEvent->frame_background_color ?: '#54172F') }}; background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.035) 0px, rgba(255,255,255,.035) 1px, transparent 1px, transparent 10px)">
-                            <div id="preview-theme-decoration" class="{{ old('frame_theme', $photoEvent->frame_theme ?: 'classic') === 'tropical' ? 'flex' : 'hidden' }} justify-between px-1 pb-1 text-xs" aria-hidden="true">
-                                <span>☀️ 🌊</span>
-                                <span>🌴 🌺</span>
+                            <div id="preview-theme-decoration" class="{{ old('frame_theme', $photoEvent->frame_theme ?: 'classic') === 'tropical' ? 'flex' : 'hidden' }} items-center justify-between px-1 pb-1 text-[10px] font-semibold tracking-wider" aria-hidden="true">
+                                <span class="text-amber-300">☀️ &nbsp;〰️</span>
+                                <span class="rounded-full border border-white/15 px-2 py-0.5 text-[7px] uppercase text-white/70">Hawaiian</span>
+                                <span class="text-emerald-300">🌴 &nbsp;🌺</span>
                             </div>
                             <div class="flex min-h-[58px] items-center gap-2 px-1 pb-2">
                                 <span class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white p-1.5">

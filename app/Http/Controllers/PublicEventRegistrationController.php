@@ -13,11 +13,16 @@ use App\Models\Payment;
 use App\Services\XenditInvoiceService;
 use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
+use Illuminate\Http\Response;
 
 class PublicEventRegistrationController extends Controller
 {
     public function store(Request $request, Event $event, XenditInvoiceService $xendit)
     {
+        if (! $event->isRegistrationOpen()) {
+            abort(Response::HTTP_GONE);
+        }
+
         $request->validate([
             'name'  => ['required','string','max:150'],
             'email' => ['required','email','max:150'],

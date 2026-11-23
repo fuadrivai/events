@@ -126,7 +126,7 @@
     </div>
     <div class="gold-divider"></div>
 
-    @if ($event->status !== 'PUBLISHED')
+    @if (! $event->isRegistrationOpen())
         {{-- Inactive Event View --}}
         <div class="container">
             <div class="row justify-content-center">

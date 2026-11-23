@@ -6,6 +6,7 @@ use App\Models\Event;
 use App\Models\EventPriceOption;
 use App\Models\EventRegistration;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class PublicEventController extends Controller
 {
@@ -29,6 +30,10 @@ class PublicEventController extends Controller
     public function register(Request $request, string $eventSlug)
     {
         $event = Event::where('slug', $eventSlug)->firstOrFail();
+
+        if (! $event->isRegistrationOpen()) {
+            abort(Response::HTTP_GONE);
+        }
 
         $request->validate([
             'name'  => ['required','string','max:255'],

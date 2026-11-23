@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 
 class Event extends Model
 {
@@ -11,6 +12,21 @@ class Event extends Model
     protected $casts = [
         'included_admin_fee' => 'boolean',
     ];
+
+    public function isRegistrationOpen(): bool
+    {
+        if (strtoupper((string) $this->status) !== 'PUBLISHED') {
+            return false;
+        }
+
+        if (empty($this->active_until)) {
+            return true;
+        }
+
+        $deadline = Carbon::parse($this->active_until, 'Asia/Jakarta');
+
+        return now()->setTimezone('Asia/Jakarta')->lte($deadline);
+    }
 
 public function fields()
 {

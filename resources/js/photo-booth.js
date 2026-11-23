@@ -375,6 +375,94 @@ if (app) {
         ? new Date(`${config.activeDate}T12:00:00`)
         : new Date();
 
+    const drawHibiscus = (context, x, y, radius, accent) => {
+        context.save();
+        context.translate(x, y);
+        for (let petal = 0; petal < 5; petal += 1) {
+            context.save();
+            context.rotate((Math.PI * 2 * petal) / 5);
+            context.fillStyle = petal % 2 ? '#ff8b9e' : '#f45f91';
+            context.beginPath();
+            context.ellipse(0, -radius * 0.53, radius * 0.31, radius * 0.56, 0, 0, Math.PI * 2);
+            context.fill();
+            context.restore();
+        }
+        context.fillStyle = accent;
+        context.beginPath();
+        context.arc(0, 0, radius * 0.2, 0, Math.PI * 2);
+        context.fill();
+        context.strokeStyle = '#fff4d6';
+        context.lineWidth = Math.max(1.5, radius * 0.07);
+        context.beginPath();
+        context.moveTo(0, 0);
+        context.quadraticCurveTo(radius * 0.55, -radius * 0.22, radius * 0.72, -radius * 0.62);
+        context.stroke();
+        context.restore();
+    };
+
+    const drawPalmFrond = (context, x, y, size, rotation) => {
+        context.save();
+        context.translate(x, y);
+        context.rotate(rotation);
+        context.strokeStyle = '#53d3a6';
+        context.lineWidth = Math.max(2, size * 0.045);
+        context.lineCap = 'round';
+        context.beginPath();
+        context.moveTo(0, size * 0.58);
+        context.quadraticCurveTo(-size * 0.12, size * 0.05, 0, -size * 0.42);
+        context.stroke();
+
+        for (let leaf = 0; leaf < 5; leaf += 1) {
+            const progress = leaf / 5;
+            const baseY = size * (0.34 - progress * 0.72);
+            const spread = size * (0.17 + progress * 0.31);
+            [-1, 1].forEach((side) => {
+                context.beginPath();
+                context.moveTo(0, baseY);
+                context.quadraticCurveTo(side * spread * 0.34, baseY - size * 0.12, side * spread, baseY - size * (0.15 + progress * 0.12));
+                context.stroke();
+            });
+        }
+        context.restore();
+    };
+
+    const drawTropicalCornerDetails = (context, width, height, padding) => {
+        const corner = padding * 0.5;
+        const motifSize = padding * 0.52;
+        context.save();
+        context.globalAlpha = 0.96;
+
+        context.fillStyle = config.frameColor;
+        context.beginPath();
+        context.arc(corner, corner, motifSize * 0.2, 0, Math.PI * 2);
+        context.fill();
+        for (let ray = 0; ray < 8; ray += 1) {
+            const angle = (Math.PI * 2 * ray) / 8;
+            context.strokeStyle = config.frameColor;
+            context.lineWidth = 3;
+            context.beginPath();
+            context.moveTo(corner + Math.cos(angle) * motifSize * 0.28, corner + Math.sin(angle) * motifSize * 0.28);
+            context.lineTo(corner + Math.cos(angle) * motifSize * 0.48, corner + Math.sin(angle) * motifSize * 0.48);
+            context.stroke();
+        }
+
+        drawPalmFrond(context, width - corner, corner + motifSize * 0.1, motifSize, -0.45);
+        drawPalmFrond(context, width - corner - motifSize * 0.24, corner + motifSize * 0.12, motifSize * 0.78, 0.12);
+        drawPalmFrond(context, corner, height - corner, motifSize * 0.76, Math.PI + 0.48);
+        drawHibiscus(context, width - corner, height - corner, motifSize * 0.52, config.frameColor);
+
+        context.strokeStyle = colorWithOpacity(config.frameColor, 0.9);
+        context.lineWidth = 3;
+        for (let row = 0; row < 3; row += 1) {
+            const waveY = height - padding * 0.32 - row * 9;
+            context.beginPath();
+            context.moveTo(padding * 0.25, waveY);
+            context.bezierCurveTo(padding * 0.45, waveY - 8, padding * 0.7, waveY + 8, padding * 0.9, waveY);
+            context.stroke();
+        }
+        context.restore();
+    };
+
     const composePhoto = async () => {
         await frameLogo.decode();
         const width = 1600;
@@ -518,15 +606,7 @@ if (app) {
         context.font = '500 24px Arial, sans-serif';
         context.fillText(activeDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), width - padding - 2, footerY + 54);
 
-        if (config.frameTheme === 'tropical') {
-            context.textAlign = 'center';
-            context.textBaseline = 'middle';
-            context.font = '34px "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
-            context.fillText('☀️', padding / 2, padding / 2);
-            context.fillText('🌴', width - padding / 2, padding / 2);
-            context.fillText('🌊', padding / 2, canvas.height - padding / 2);
-            context.fillText('🌺', width - padding / 2, canvas.height - padding / 2);
-        }
+        if (config.frameTheme === 'tropical') drawTropicalCornerDetails(context, width, canvas.height, padding);
 
         return new Promise((resolve, reject) => {
             canvas.toBlob((blob) => {

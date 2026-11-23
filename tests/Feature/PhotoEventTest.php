@@ -71,6 +71,8 @@ class PhotoEventTest extends TestCase
             ->assertSee('Preview frame')
             ->assertSee('id="preview-frame-content"', false)
             ->assertSee('id="preview-year"', false)
+            ->assertSee('Hawaiian / Tropical')
+            ->assertSee('id="preview-theme-decoration"', false)
             ->assertSee('id="active_date"', false)
             ->assertSee('background-color: #172033', false);
 

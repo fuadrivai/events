@@ -6,11 +6,18 @@
                 <h1 class="mt-1 text-2xl font-bold text-slate-900">Photo Booth Events</h1>
                 <p class="mt-1 text-sm text-slate-500">Atur desain, kamera, dan QR download untuk setiap acara.</p>
             </div>
-            <a href="{{ route('dashboard.photo-events.create') }}"
-                class="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/10 transition hover:bg-amber-700">
-                <i class="fas fa-plus"></i>
-                Buat photo event
-            </a>
+            <div class="flex flex-col gap-3 sm:flex-row">
+                <a href="{{ route('dashboard') }}"
+                    class="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-amber-300 hover:bg-amber-50 hover:text-amber-800">
+                    <i class="fas fa-arrow-left"></i>
+                    Kembali ke dashboard
+                </a>
+                <a href="{{ route('dashboard.photo-events.create') }}"
+                    class="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/10 transition hover:bg-amber-700">
+                    <i class="fas fa-plus"></i>
+                    Buat photo event
+                </a>
+            </div>
         </div>
     </x-slot>
 
