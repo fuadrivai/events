@@ -14,6 +14,14 @@ class PublicEventController extends Controller
     {
         $event = Event::where('slug', $eventSlug)->firstOrFail();
 
+        if ($event->hasRegistrationDeadlinePassed()) {
+            return response()->view('public.event', [
+                'event' => $event,
+                'fields' => collect(),
+                'priceOptions' => collect(),
+            ], Response::HTTP_GONE);
+        }
+
         $fields = $event->fields()
             ->where('is_active', true)
             ->orderBy('order_index')

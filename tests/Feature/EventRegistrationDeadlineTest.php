@@ -11,7 +11,7 @@ class EventRegistrationDeadlineTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_published_event_is_closed_after_active_until(): void
+    public function test_published_event_page_is_unavailable_after_active_until(): void
     {
         Carbon::setTestNow(Carbon::parse('2026-11-23 10:00:00', 'Asia/Jakarta'));
 
@@ -23,7 +23,7 @@ class EventRegistrationDeadlineTest extends TestCase
         ]);
 
         $this->get('/e/'.$event->slug)
-            ->assertOk()
+            ->assertGone()
             ->assertSee('Registration Closed');
 
         $this->post('/public/event/'.$event->slug.'/register', [

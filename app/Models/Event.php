@@ -19,13 +19,18 @@ class Event extends Model
             return false;
         }
 
+        return ! $this->hasRegistrationDeadlinePassed();
+    }
+
+    public function hasRegistrationDeadlinePassed(): bool
+    {
         if (empty($this->active_until)) {
-            return true;
+            return false;
         }
 
         $deadline = Carbon::parse($this->active_until, 'Asia/Jakarta');
 
-        return now()->setTimezone('Asia/Jakarta')->lte($deadline);
+        return now()->setTimezone('Asia/Jakarta')->gt($deadline);
     }
 
 public function fields()
