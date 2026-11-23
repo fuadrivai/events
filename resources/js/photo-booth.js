@@ -18,6 +18,7 @@ if (app) {
         frameColor: app.dataset.frameColor,
         frameBackgroundColor: app.dataset.frameBackgroundColor || '#54172F',
         frameTheme: app.dataset.frameTheme || 'classic',
+        frameMode: app.dataset.frameMode || 'classic',
         templateUrl: app.dataset.templateUrl || '',
         frameLayout: JSON.parse(app.dataset.frameLayout || '{}'),
         mediapipeAssets: app.dataset.mediapipeAssets,
@@ -559,7 +560,12 @@ if (app) {
     };
 
     const composePhoto = async () => {
-        if (config.templateUrl) return composeTemplatePhoto();
+        if (config.frameMode === 'template') {
+            if (!config.templateUrl) {
+                throw new Error('Template belum tersedia. Buka pengaturan event dan simpan template PNG terlebih dahulu.');
+            }
+            return composeTemplatePhoto();
+        }
 
         await frameLogo.decode();
         const width = 1600;

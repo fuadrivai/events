@@ -45,6 +45,7 @@ class PhotoEventTest extends TestCase
             'status' => 'published',
             'frame_background_color' => '#172033',
             'frame_theme' => 'tropical',
+            'frame_mode' => 'template',
         ]);
         $this->assertSame(
             '2026-10-14',
@@ -63,7 +64,7 @@ class PhotoEventTest extends TestCase
             ->assertSee('Aktifkan kamera')
             ->assertSee('data-active-date="2026-10-14"', false)
             ->assertSee('data-frame-mode="template"', false)
-            ->assertSee('data-template-url=', false)
+            ->assertSee('data-template-url="'.route('dashboard.photo-events.template', $photoEvent).'"', false)
             ->assertSee('data-frame-layout=', false)
             ->assertSee('id="booth-frame-logo"', false)
             ->assertSee('id="ar-canvas"', false)
