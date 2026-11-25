@@ -104,6 +104,43 @@ class PhotoEventController extends Controller
             abort(404, 'File foto tidak ditemukan.');
         }
 
+        $previousPhoto = $photoEvent->photos()
+            ->where(function ($query) use ($photo) {
+                $query->where('created_at', '>', $photo->created_at)
+                    ->orWhere(function ($query) use ($photo) {
+                        $query->where('created_at', $photo->created_at)
+                            ->where('id', '>', $photo->id);
+                    });
+            })
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->first();
+
+        $nextPhoto = $photoEvent->photos()
+            ->where(function ($query) use ($photo) {
+                $query->where('created_at', '<', $photo->created_at)
+                    ->orWhere(function ($query) use ($photo) {
+                        $query->where('created_at', $photo->created_at)
+                            ->where('id', '<', $photo->id);
+                    });
+            })
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->first();
+
+        return view('dashboard.photo-events.preview', compact('photoEvent', 'photo', 'previousPhoto', 'nextPhoto'));
+    }
+
+    public function photoImage(PhotoEvent $photoEvent, Photo $photo)
+    {
+        abort_unless($photo->photo_event_id === $photoEvent->id, 404);
+
+        $disk = Storage::disk('local');
+        if (! $disk->exists($photo->path)) {
+            report(new \RuntimeException('A photo event preview points to a missing image.'));
+            abort(404, 'File foto tidak ditemukan.');
+        }
+
         return $disk->response($photo->path, null, [
             'Cache-Control' => 'private, no-store',
             'X-Content-Type-Options' => 'nosniff',

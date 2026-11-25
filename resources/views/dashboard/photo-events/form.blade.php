@@ -418,7 +418,7 @@
                                         @if ($photo->file_available)
                                             <a href="{{ route('dashboard.photo-events.photos.preview', [$photoEvent, $photo]) }}"
                                                 target="_blank" rel="noopener" class="group relative block aspect-[4/3] overflow-hidden bg-slate-200">
-                                                <img src="{{ route('dashboard.photo-events.photos.preview', [$photoEvent, $photo]) }}"
+                                                <img src="{{ route('dashboard.photo-events.photos.image', [$photoEvent, $photo]) }}"
                                                     alt="Foto {{ $photo->created_at->format('d M Y H:i') }}"
                                                     loading="lazy"
                                                     class="h-full w-full object-cover transition duration-300 group-hover:scale-105">

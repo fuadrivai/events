@@ -113,6 +113,8 @@ Route::middleware(['auth', 'admin'])
         Route::put('/photo-events/{photoEvent}', [PhotoEventController::class, 'update'])->name('photo-events.update');
         Route::get('/photo-events/{photoEvent}/photos/{photo}/preview', [PhotoEventController::class, 'photoPreview'])
             ->name('photo-events.photos.preview');
+        Route::get('/photo-events/{photoEvent}/photos/{photo}/image', [PhotoEventController::class, 'photoImage'])
+            ->name('photo-events.photos.image');
         Route::get('/photo-events/{photoEvent}/photos/{photo}/download', [PhotoEventController::class, 'photoDownload'])
             ->name('photo-events.photos.download');
         Route::delete('/photo-events/{photoEvent}/photos/{photo}', [PhotoEventController::class, 'deletePhoto'])

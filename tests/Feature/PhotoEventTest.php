@@ -407,6 +407,16 @@ class PhotoEventTest extends TestCase
 
         $this->get($downloadUrl)->assertOk();
 
+        $olderPhoto = $photoEvent->photos()->create([
+            'uuid' => '16c150a5-0651-4c0a-a57e-a828cb67863e',
+            'token' => str_repeat('c', 64),
+            'path' => "photo-events/{$photoEvent->slug}/older.jpg",
+            'mime_type' => 'image/jpeg',
+            'expires_at' => now()->addDays(30),
+            'created_at' => now()->subMinute(),
+        ]);
+        Storage::disk('local')->put($olderPhoto->path, 'older-image');
+
         $this->withoutVite()
             ->get(route('dashboard.photo-events.edit', $photoEvent))
             ->assertOk()
@@ -416,6 +426,19 @@ class PhotoEventTest extends TestCase
             ->assertSee(route('dashboard.photo-events.photos.preview', [$photoEvent, $photo]), false);
 
         $this->get(route('dashboard.photo-events.photos.preview', [$photoEvent, $photo]))
+            ->assertOk()
+            ->assertSee('Preview foto')
+            ->assertSee(route('dashboard.photo-events.photos.image', [$photoEvent, $photo]), false)
+            ->assertSee(route('dashboard.photo-events.photos.preview', [$photoEvent, $olderPhoto]), false)
+            ->assertSee('aria-label="Foto selanjutnya"', false);
+
+        $this->get(route('dashboard.photo-events.photos.preview', [$photoEvent, $olderPhoto]))
+            ->assertOk()
+            ->assertSee(route('dashboard.photo-events.photos.preview', [$photoEvent, $photo]), false)
+            ->assertSee('aria-label="Foto sebelumnya"', false)
+            ->assertSee('aria-label="Foto selanjutnya" disabled', false);
+
+        $this->get(route('dashboard.photo-events.photos.image', [$photoEvent, $photo]))
             ->assertOk()
             ->assertHeader('Content-Type', 'image/jpeg')
             ->assertHeader('Cache-Control', 'no-store, private');
