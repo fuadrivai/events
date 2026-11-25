@@ -1,5 +1,5 @@
 import QRCode from 'qrcode';
-import { FACE_STICKER_STYLES, GLASSES_STYLES, PhotoBoothAR } from './photo-booth-ar';
+import { GLASSES_STYLES, PhotoBoothAR } from './photo-booth-ar';
 
 const app = document.getElementById('photo-booth');
 
@@ -36,13 +36,15 @@ if (app) {
     const connectionStatus = document.getElementById('connection-status');
     const countdownOverlay = document.getElementById('countdown-overlay');
     const countdownNumber = document.getElementById('countdown-number');
+    const captureProcessing = document.getElementById('capture-processing');
+    const captureProcessingTitle = document.getElementById('capture-processing-title');
+    const captureProcessingMessage = document.getElementById('capture-processing-message');
     const gallery = document.getElementById('photo-gallery');
     const galleryEmpty = document.getElementById('gallery-empty');
     const frameLogo = document.getElementById('booth-frame-logo');
     const frameTemplate = new Image();
     if (config.templateUrl) frameTemplate.src = config.templateUrl;
-    const stickers = new Set();
-    const activeTheme = { name: 'All Continents', icon: '🌍', flag: '🌍', sticker: '' };
+    const activeTheme = { name: 'All Continents' };
     let db;
     let stream;
     const ar = new PhotoBoothAR(
@@ -157,52 +159,19 @@ if (app) {
         connectionStatus.className = `mt-0.5 text-[11px] ${online ? 'text-emerald-300' : 'text-amber-300'}`;
     };
 
-    const updateStickerPreview = () => {
-        const target = document.getElementById('live-stickers');
-        target.replaceChildren();
-        [activeTheme.sticker, ...stickers].filter(Boolean).forEach((sticker) => {
-            const item = document.createElement('span');
-            item.className = 'booth-sticker';
-            item.textContent = sticker;
-            target.append(item);
-        });
-        if (ar) {
-            ar.setTheme(activeTheme.name, activeTheme.flag);
-        }
-    };
-
     const updateCameraStatus = () => {
         const isReady = Boolean(stream);
         document.getElementById('camera-status').classList.toggle('hidden', !isReady);
         document.getElementById('camera-status-text').textContent = `Kamera siap · ${activeTheme.name}`;
     };
 
-    document.querySelectorAll('.sticker-choice').forEach((button) => {
-        button.addEventListener('click', () => {
-            const sticker = button.dataset.sticker;
-            if (stickers.has(sticker)) {
-                stickers.delete(sticker);
-                button.setAttribute('aria-pressed', 'false');
-                button.classList.remove('border-amber-400', 'bg-amber-100', 'ring-2', 'ring-amber-200');
-            } else {
-                stickers.add(sticker);
-                button.setAttribute('aria-pressed', 'true');
-                button.classList.add('border-amber-400', 'bg-amber-100', 'ring-2', 'ring-amber-200');
-            }
-            updateStickerPreview();
-        });
-    });
-
     document.querySelectorAll('.booth-theme').forEach((button) => {
         button.addEventListener('click', () => {
             activeTheme.name = button.dataset.region;
-            activeTheme.icon = button.dataset.regionIcon;
-            activeTheme.flag = button.dataset.regionFlag;
-            activeTheme.sticker = button.dataset.regionSticker;
             document.querySelectorAll('.booth-theme').forEach((themeButton) => {
                 themeButton.setAttribute('aria-pressed', String(themeButton === button));
             });
-            updateStickerPreview();
+            ar.setTheme(activeTheme.name);
             if (stream) updateCameraStatus();
         });
     });
@@ -492,20 +461,6 @@ if (app) {
         if (arCanvas.width && arCanvas.height) {
             drawCover(context, arCanvas, photoX, photoY, photoWidth, photoHeight);
         }
-        const selectedStickers = [activeTheme.sticker, ...stickers].filter(Boolean);
-        if (selectedStickers.length) {
-            const stickerSize = Math.min(96, Math.floor(photoWidth / (selectedStickers.length + 2)));
-            context.textAlign = 'center';
-            context.textBaseline = 'middle';
-            context.font = `${stickerSize}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
-            context.shadowColor = 'rgba(0, 0, 0, .45)';
-            context.shadowBlur = 12;
-            const gap = stickerSize * 1.25;
-            const startX = photoX + photoWidth / 2 - (selectedStickers.length - 1) * gap / 2;
-            selectedStickers.forEach((sticker, index) => {
-                context.fillText(sticker, startX + index * gap, photoY + stickerSize * 0.9);
-            });
-        }
         context.restore();
 
         context.drawImage(frameTemplate, 0, 0, width, height);
@@ -682,22 +637,6 @@ if (app) {
         }
         context.restore();
 
-        const selectedStickers = [activeTheme.sticker, ...stickers].filter(Boolean);
-        if (selectedStickers.length) {
-            const stickerSize = Math.min(96, Math.floor(width / (selectedStickers.length + 2)));
-            context.textAlign = 'center';
-            context.textBaseline = 'middle';
-            context.font = `${stickerSize}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
-            context.shadowColor = 'rgba(0, 0, 0, .45)';
-            context.shadowBlur = 12;
-            const gap = stickerSize * 1.25;
-            const startX = width / 2 - (selectedStickers.length - 1) * gap / 2;
-            selectedStickers.forEach((sticker, index) => {
-                context.fillText(sticker, startX + index * gap, photoY + stickerSize * 0.9);
-            });
-            context.shadowBlur = 0;
-        }
-
         context.fillStyle = colorWithOpacity(config.frameColor, 0.72);
         context.fillRect(padding, footerY, photoWidth, 2);
         context.textAlign = 'left';
@@ -729,6 +668,20 @@ if (app) {
         document.getElementById('latest-image').src = latestPreviewUrl;
         await updateLatestStatus(record);
         if (showResult) openResult();
+    };
+
+    const showCaptureProcessing = (title, messageText) => {
+        captureProcessingTitle.textContent = title;
+        captureProcessingMessage.textContent = messageText;
+        captureProcessing.classList.remove('hidden');
+        captureProcessing.classList.add('flex');
+        captureProcessing.setAttribute('aria-hidden', 'false');
+    };
+
+    const hideCaptureProcessing = () => {
+        captureProcessing.classList.add('hidden');
+        captureProcessing.classList.remove('flex');
+        captureProcessing.setAttribute('aria-hidden', 'true');
     };
 
     const celebrateCapture = () => {
@@ -814,7 +767,9 @@ if (app) {
             qrPanel.classList.remove('hidden');
             openDownload.href = record.shareUrl;
             openDownload.classList.remove('hidden');
+            hideCaptureProcessing();
         } else if (record.status === 'uploading') {
+            showCaptureProcessing('Hampir selesai!', 'Foto sedang dikirim dengan aman agar QR code download bisa dibuat.');
             status.textContent = 'Sedang upload';
             status.className = 'rounded-full bg-cyan-400/15 px-2.5 py-1 text-[9px] font-semibold text-cyan-200';
             statusHeading.textContent = 'Mengirim foto ke server...';
@@ -825,6 +780,8 @@ if (app) {
         } else {
             const failed = Boolean(record.errorMessage);
             const offline = !navigator.onLine;
+            if (failed || offline) hideCaptureProcessing();
+            else showCaptureProcessing('Membuat QR code', 'Foto sudah siap. Menunggu server menyimpan foto agar QR code dan link unduh muncul.');
             status.textContent = failed ? 'Upload gagal' : offline ? 'Offline' : 'Menunggu upload';
             status.className = failed
                 ? 'rounded-full bg-rose-400/15 px-2.5 py-1 text-[9px] font-semibold text-rose-200'
@@ -1026,10 +983,6 @@ if (app) {
             selectId: 'select-glasses-style',
             options: GLASSES_STYLES,
         },
-        stickerStyle: {
-            selectId: 'select-sticker-style',
-            options: FACE_STICKER_STYLES,
-        },
     };
     const updateStyleLabel = (setting) => {
         const { selectId, options } = styleControls[setting];
@@ -1151,6 +1104,7 @@ if (app) {
                 uploadedAny = true;
             }
         } catch (error) {
+            hideCaptureProcessing();
             showMessage(`Antrean foto gagal dibaca: ${error.message || 'periksa penyimpanan browser.'}`);
         } finally {
             queueBusy = false;
@@ -1187,8 +1141,10 @@ if (app) {
         hideMessage();
         try {
             await runCountdown();
+            showCaptureProcessing('Sedang menyiapkan foto', 'Tunggu sebentar, kami sedang memproses hasil foto Anda.');
             await playTone(280, 0.16);
             const blob = await composePhoto();
+            captureProcessingMessage.textContent = 'Foto berhasil dibuat. Sedang menyiapkan preview dan menyimpan salinan dengan aman.';
             const record = {
                 uuid: newUuid(),
                 eventId: config.eventId,
@@ -1209,9 +1165,11 @@ if (app) {
             await renderGallery();
             processQueue(true);
             if (!navigator.onLine) {
+                hideCaptureProcessing();
                 showMessage('Foto tersimpan aman di IndexedDB laptop. Upload dan QR akan dilanjutkan otomatis saat koneksi pulih.', 'success');
             }
         } catch (error) {
+            hideCaptureProcessing();
             showMessage(`Foto belum dapat disimpan: ${error.message || 'periksa ruang penyimpanan browser.'}`);
         } finally {
             captureButton.disabled = false;

@@ -1,15 +1,59 @@
+import flagAu from 'flag-icons/flags/4x3/au.svg';
+import flagBw from 'flag-icons/flags/4x3/bw.svg';
+import flagCi from 'flag-icons/flags/4x3/ci.svg';
+import flagCn from 'flag-icons/flags/4x3/cn.svg';
+import flagDe from 'flag-icons/flags/4x3/de.svg';
+import flagDza from 'flag-icons/flags/4x3/dz.svg';
+import flagEg from 'flag-icons/flags/4x3/eg.svg';
+import flagFj from 'flag-icons/flags/4x3/fj.svg';
+import flagFr from 'flag-icons/flags/4x3/fr.svg';
+import flagGb from 'flag-icons/flags/4x3/gb.svg';
+import flagGh from 'flag-icons/flags/4x3/gh.svg';
+import flagId from 'flag-icons/flags/4x3/id.svg';
+import flagIn from 'flag-icons/flags/4x3/in.svg';
+import flagIt from 'flag-icons/flags/4x3/it.svg';
+import flagJp from 'flag-icons/flags/4x3/jp.svg';
+import flagMa from 'flag-icons/flags/4x3/ma.svg';
+import flagNa from 'flag-icons/flags/4x3/na.svg';
+import flagNg from 'flag-icons/flags/4x3/ng.svg';
+import flagNz from 'flag-icons/flags/4x3/nz.svg';
+import flagSn from 'flag-icons/flags/4x3/sn.svg';
+import flagTh from 'flag-icons/flags/4x3/th.svg';
+import flagTn from 'flag-icons/flags/4x3/tn.svg';
+import flagZa from 'flag-icons/flags/4x3/za.svg';
+import flagZw from 'flag-icons/flags/4x3/zw.svg';
+
 const FACE_MESH_OPTIONS = {
     maxNumFaces: 6,
     refineLandmarks: false,
 };
 
-export const FACE_STICKER_STYLES = [
-    { id: 'flag', label: 'Flag', icon: '🏳️' },
-    { id: 'heart', label: 'Heart', icon: '💖' },
-    { id: 'star', label: 'Star', icon: '⭐' },
-    { id: 'flower', label: 'Flower', icon: '🌸' },
-    { id: 'sparkle', label: 'Sparkle', icon: '✨' },
-];
+const FLAG_ASSETS = {
+    au: flagAu,
+    bw: flagBw,
+    ci: flagCi,
+    cn: flagCn,
+    de: flagDe,
+    dz: flagDza,
+    eg: flagEg,
+    fj: flagFj,
+    fr: flagFr,
+    gb: flagGb,
+    gh: flagGh,
+    id: flagId,
+    in: flagIn,
+    it: flagIt,
+    jp: flagJp,
+    ma: flagMa,
+    na: flagNa,
+    ng: flagNg,
+    nz: flagNz,
+    sn: flagSn,
+    th: flagTh,
+    tn: flagTn,
+    za: flagZa,
+    zw: flagZw,
+};
 
 export const GLASSES_STYLES = [
     { id: 'classic', label: 'Classic Clear' },
@@ -83,10 +127,6 @@ const COUNTRIES_BY_REGION = {
     ],
 };
 
-const STICKER_GLYPHS = {
-    ...Object.fromEntries(FACE_STICKER_STYLES.map(({ id, icon }) => [id, icon])),
-};
-
 export class PhotoBoothAR {
     constructor(video, canvas, status, frameColor, frameBackgroundColor, assetsUrl) {
         this.video = video;
@@ -101,8 +141,8 @@ export class PhotoBoothAR {
         this.processing = false;
         this.running = false;
         this.faceTracks = [];
-        this.nextCountryIndex = 0;
         this.countries = COUNTRIES_BY_REGION['All Continents'];
+        this.flagImages = {};
         this.settings = {
             sensitivity: 'balanced',
             headband: false,
@@ -110,11 +150,9 @@ export class PhotoBoothAR {
             glassesStyle: 'classic',
             outfit: false,
             cap: false,
-            cheekSticker: false,
+            cheekSticker: true,
             stickerSide: 'right',
-            stickerStyle: 'flag',
             label: false,
-            themeIcon: '🌍',
             themeName: 'All Continents',
         };
     }
@@ -165,13 +203,11 @@ export class PhotoBoothAR {
         });
     }
 
-    setTheme(themeName, themeIcon) {
+    setTheme(themeName) {
         if (this.settings.themeName !== themeName) {
             this.faceTracks = [];
-            this.nextCountryIndex = 0;
         }
         this.settings.themeName = themeName;
-        this.settings.themeIcon = themeIcon;
         this.countries = COUNTRIES_BY_REGION[themeName] || COUNTRIES_BY_REGION['All Continents'];
     }
 
@@ -243,17 +279,9 @@ export class PhotoBoothAR {
             let track = closest && closest.distance <= searchRadius ? closest.track : null;
 
             if (!track) {
-                let country;
-                for (let offset = 0; offset < this.countries.length; offset += 1) {
-                    const candidateIndex = (this.nextCountryIndex + offset) % this.countries.length;
-                    const candidate = this.countries[candidateIndex];
-                    if (!usedCountryIds.has(candidate.id)) {
-                        country = candidate;
-                        this.nextCountryIndex = (candidateIndex + 1) % this.countries.length;
-                        break;
-                    }
-                }
-                country ||= this.countries[this.nextCountryIndex % this.countries.length];
+                const availableCountries = this.countries.filter((country) => !usedCountryIds.has(country.id));
+                const candidates = availableCountries.length ? availableCountries : this.countries;
+                const country = candidates[Math.floor(Math.random() * candidates.length)];
                 track = { id: Symbol('face'), x, lastSeen: now, country };
                 tracks.push(track);
             }
@@ -414,48 +442,20 @@ export class PhotoBoothAR {
     }
 
     drawCheekStickers(landmarks, width, height, eyeDistance, country) {
-        const sides = this.settings.stickerSide === 'both'
-            ? [117, 346]
-            : [this.settings.stickerSide === 'left' ? 346 : 117];
-        const glyph = this.settings.stickerStyle === 'flag'
-            ? country.flag
-            : STICKER_GLYPHS[this.settings.stickerStyle];
-        const size = Math.max(20, eyeDistance * 0.3);
-        const ctx = this.context;
-        ctx.save();
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.shadowColor = 'rgba(0,0,0,.4)';
-        ctx.shadowBlur = eyeDistance * 0.06;
-        sides.forEach((index) => {
-            const cheek = this.point(landmarks, index, width, height);
-            if (!cheek) return;
+        const side = this.settings.stickerSide === 'left' ? 346 : 117;
+        const cheek = this.point(landmarks, side, width, height);
+        const nose = this.point(landmarks, 1, width, height);
+        let flag = this.flagImages[country.id];
+        if (!flag && FLAG_ASSETS[country.id]) {
+            flag = new Image();
+            flag.src = FLAG_ASSETS[country.id];
+            this.flagImages[country.id] = flag;
+        }
+        if (!cheek || !nose || !flag?.complete || !flag.naturalWidth) return;
 
-            if (this.settings.stickerStyle === 'flag') {
-                const stickerWidth = size * 1.2;
-                const stickerHeight = size * 0.82;
-                ctx.fillStyle = 'rgba(255,255,255,.96)';
-                ctx.beginPath();
-                ctx.roundRect(cheek.x - stickerWidth / 2, cheek.y - stickerHeight / 2, stickerWidth, stickerHeight, stickerHeight * 0.2);
-                ctx.fill();
-                ctx.strokeStyle = 'rgba(255,255,255,.95)';
-                ctx.lineWidth = Math.max(1, size * 0.04);
-                ctx.stroke();
-                ctx.font = `${size * 0.72}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
-            } else {
-                ctx.fillStyle = 'rgba(255,255,255,.96)';
-                ctx.beginPath();
-                ctx.arc(cheek.x, cheek.y, size * 0.58, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.strokeStyle = 'rgba(255,255,255,.95)';
-                ctx.lineWidth = Math.max(1, size * 0.04);
-                ctx.stroke();
-                ctx.font = `${size * 0.88}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
-            }
-            ctx.fillStyle = '#ffffff';
-            ctx.fillText(glyph, cheek.x, cheek.y);
-        });
-        ctx.restore();
+        const flagWidth = Math.max(14, eyeDistance * 0.16);
+        const flagHeight = flagWidth * 0.75;
+        this.context.drawImage(flag, cheek.x - flagWidth / 2, nose.y - flagHeight / 2, flagWidth, flagHeight);
     }
 
     drawLabel(forehead, eyeDistance, faceHeight, country) {

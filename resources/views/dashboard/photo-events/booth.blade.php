@@ -100,7 +100,6 @@
             color: white;
             box-shadow: 0 4px 14px rgba(212, 125, 12, .32);
         }
-        .booth-sticker { filter: drop-shadow(0 3px 6px rgba(0,0,0,.4)); }
         .booth-scrollbar::-webkit-scrollbar { width: 6px; }
         .booth-scrollbar::-webkit-scrollbar-thumb { border-radius: 99px; background: #50576a; }
         @keyframes booth-confetti-fall {
@@ -113,6 +112,15 @@
             height: 15px;
             border-radius: 2px;
             animation: booth-confetti-fall 2.2s cubic-bezier(.2,.7,.3,1) forwards;
+        }
+        @keyframes booth-processing-spin { to { transform: rotate(360deg); } }
+        @keyframes booth-processing-glow {
+            50% { transform: scale(1.12); opacity: .55; }
+        }
+        .booth-processing-spin { animation: booth-processing-spin 1.8s linear infinite; }
+        .booth-processing-glow { animation: booth-processing-glow 2.4s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) {
+            .booth-processing-spin, .booth-processing-glow { animation: none; }
         }
         @media (max-width: 640px) {
             .booth-control { width: 40px; height: 40px; }
@@ -164,7 +172,6 @@
                 </div>
             </div>
 
-            <div id="live-stickers" class="pointer-events-none absolute inset-x-0 top-[20%] z-[2] flex justify-center gap-3 text-5xl sm:text-6xl"></div>
         </div>
 
         <header class="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 p-4 sm:p-6">
@@ -217,25 +224,11 @@
             </div>
             <div class="mt-4 grid grid-cols-2 gap-2">
                 <button type="button" class="filter-quick" data-ar-toggle="headband" aria-pressed="false"><span>👑</span> Headband</button>
-                <button type="button" class="filter-quick" data-ar-toggle="cheekSticker" aria-pressed="false"><span>✨</span> Stiker pipi</button>
+                <button type="button" class="filter-quick" data-ar-toggle="cheekSticker" aria-pressed="true"><span>🏳️</span> Bendera pipi</button>
                 <button type="button" class="filter-quick" data-ar-toggle="glasses" aria-pressed="false"><span>🕶️</span> Kacamata</button>
                 <button type="button" class="filter-quick" data-ar-cycle="glassesStyle"><span>🎨</span> Kacamata: <span data-cycle-label="glassesStyle">Classic</span></button>
                 <button type="button" class="filter-quick" data-ar-toggle="cap" aria-pressed="false"><span>🧢</span> Topi</button>
                 <button type="button" class="filter-quick" data-ar-toggle="outfit" aria-pressed="false"><span>👘</span> Kostum tema</button>
-                <button type="button" class="filter-quick col-span-2" data-ar-cycle="stickerStyle"><span>🎨</span> Gaya stiker: <span data-cycle-label="stickerStyle">Flag</span></button>
-            </div>
-
-            <div class="mt-4 border-t border-white/10 pt-4">
-                <p class="text-xs font-bold text-white">Stiker dekorasi foto</p>
-                <p class="mt-1 text-[10px] text-slate-300">Pilih beberapa untuk ditambahkan ke hasil foto.</p>
-            </div>
-            <div class="mt-3 flex flex-wrap gap-2">
-                @foreach (['✨', '🌸', '🎉', '⭐', '🤍', '🎈', '🌍'] as $sticker)
-                    <button type="button" data-sticker="{{ $sticker }}" aria-pressed="false"
-                        class="sticker-choice rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-2xl transition hover:border-amber-300/60 hover:bg-white/10">
-                        {{ $sticker }}
-                    </button>
-                @endforeach
             </div>
         </div>
 
@@ -299,25 +292,14 @@
                     <input id="check-cap" type="checkbox" class="h-4 w-4 rounded border-white/20 bg-slate-800 text-amber-500 focus:ring-amber-400">
                 </label>
                 <label class="flex items-center justify-between gap-3 py-3">
-                    <span><span class="block text-xs font-semibold text-white">Stiker pipi</span><span class="block text-[10px] text-slate-400">Stiker mengikuti landmark wajah</span></span>
-                    <input id="check-face-sticker" type="checkbox" class="h-4 w-4 rounded border-white/20 bg-slate-800 text-amber-500 focus:ring-amber-400">
+                    <span><span class="block text-xs font-semibold text-white">Bendera pipi</span><span class="block text-[10px] text-slate-400">Bendera negara sesuai wilayah pilihan</span></span>
+                    <input id="check-face-sticker" type="checkbox" checked class="h-4 w-4 rounded border-white/20 bg-slate-800 text-amber-500 focus:ring-amber-400">
                 </label>
                 <label class="flex items-center justify-between gap-3 py-3">
                     <span><span class="block text-xs font-semibold text-white">Posisi stiker pipi</span><span class="block text-[10px] text-slate-400">Pilih sisi wajah</span></span>
                     <select id="select-sticker-side" class="rounded-lg border-white/10 bg-slate-900/80 px-2.5 py-2 text-xs font-semibold text-white">
                         <option value="right">Pipi kanan</option>
                         <option value="left">Pipi kiri</option>
-                        <option value="both">Kedua pipi</option>
-                    </select>
-                </label>
-                <label class="flex items-center justify-between gap-3 py-3">
-                    <span><span class="block text-xs font-semibold text-white">Gaya stiker pipi</span><span class="block text-[10px] text-slate-400">Pilih dekorasi wajah</span></span>
-                    <select id="select-sticker-style" class="rounded-lg border-white/10 bg-slate-900/80 px-2.5 py-2 text-xs font-semibold text-white">
-                        <option value="flag">Bendera tema</option>
-                        <option value="heart">Hati</option>
-                        <option value="star">Bintang</option>
-                        <option value="flower">Bunga</option>
-                        <option value="sparkle">Kilau</option>
                     </select>
                 </label>
                 <label class="flex items-center justify-between gap-3 py-3">
@@ -396,16 +378,16 @@
             <nav aria-label="Pilih tema foto" class="pointer-events-auto booth-glass max-w-[calc(100vw-1.25rem)] overflow-x-auto rounded-full p-1.5 sm:max-w-[min(94vw,1040px)] sm:px-2">
                 <div class="flex min-w-max items-center gap-1">
                     @foreach ([
-                        ['🌍', 'All Continents', '', '🌍'],
-                            ['🏮', 'Asia', '🌸', '🇮🇩'],
-                            ['🏰', 'Europe', '✨', '🇫🇷'],
-                            ['🏜️', 'North Africa', '🌙', '🇪🇬'],
-                            ['🥁', 'West Africa', '🎉', '🇬🇭'],
-                            ['🦒', 'Southern Africa', '⭐', '🇿🇦'],
-                            ['🌊', 'Oceania', '🌊', '🇦🇺'],
-                        ] as [$icon, $region, $sticker, $flag])
+                        ['🌍', 'All Continents'],
+                        ['🏮', 'Asia'],
+                        ['🏰', 'Europe'],
+                        ['🏜️', 'North Africa'],
+                        ['🥁', 'West Africa'],
+                        ['🦒', 'Southern Africa'],
+                        ['🌊', 'Oceania'],
+                    ] as [$icon, $region])
                         <button type="button" class="booth-theme px-3 py-2 text-[10px] font-bold sm:px-4 sm:text-xs"
-                                data-region="{{ $region }}" data-region-icon="{{ $icon }}" data-region-sticker="{{ $sticker }}" data-region-flag="{{ $flag }}"
+                                data-region="{{ $region }}"
                             aria-pressed="{{ $loop->first ? 'true' : 'false' }}">
                             <span class="mr-1.5">{{ $icon }}</span>{{ $region }}
                         </button>
@@ -416,6 +398,33 @@
 
         <div id="countdown-overlay" class="pointer-events-none absolute inset-0 z-40 hidden items-center justify-center bg-slate-950/30 backdrop-blur-[2px]">
             <span id="countdown-number" class="text-8xl font-extrabold text-white drop-shadow-2xl sm:text-9xl"></span>
+        </div>
+
+        <div id="capture-processing" class="fixed inset-0 z-[80] hidden items-center justify-center overflow-hidden bg-[#090d16]/95 p-5 backdrop-blur-xl"
+            role="status" aria-live="polite" aria-hidden="true">
+            <div class="booth-processing-glow pointer-events-none absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-400/15 blur-3xl sm:h-96 sm:w-96"></div>
+            <section class="relative w-full max-w-md overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-b from-slate-800/95 to-slate-900/95 p-7 text-center shadow-[0_30px_100px_rgba(0,0,0,.55)] sm:p-10">
+                <div class="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/70 to-transparent"></div>
+                <div class="relative mx-auto flex h-28 w-28 items-center justify-center">
+                    <span class="booth-processing-spin absolute inset-0 rounded-full border border-amber-300/15 border-t-amber-300/90"></span>
+                    <span class="absolute inset-2 rounded-full border border-white/10 border-b-cyan-300/70"></span>
+                    <span class="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 to-orange-500 text-2xl text-white shadow-[0_0_40px_rgba(245,158,11,.3)]">
+                        <i class="fas fa-camera-retro"></i>
+                    </span>
+                    <span class="absolute right-1 top-4 h-2.5 w-2.5 rounded-full bg-cyan-300 shadow-[0_0_14px_rgba(103,232,249,.9)]"></span>
+                </div>
+                <p class="mt-7 text-[10px] font-bold uppercase tracking-[.28em] text-amber-300">Momen spesial Anda</p>
+                <h2 id="capture-processing-title" class="mt-3 font-serif text-2xl font-bold text-white sm:text-3xl">Sedang menyiapkan foto</h2>
+                <p id="capture-processing-message" class="mx-auto mt-3 max-w-xs text-sm leading-6 text-slate-300">
+                    Tunggu sebentar, kami sedang merapikan hasil foto Anda.
+                </p>
+                <div class="mx-auto mt-7 flex max-w-[220px] items-center justify-center gap-2" aria-hidden="true">
+                    <span class="h-1.5 flex-1 rounded-full bg-gradient-to-r from-amber-300 to-orange-400"></span>
+                    <span class="h-1.5 flex-1 rounded-full bg-gradient-to-r from-orange-400 to-cyan-300 opacity-70"></span>
+                    <span class="h-1.5 flex-1 rounded-full bg-white/15"></span>
+                </div>
+                <p class="mt-3 text-[10px] font-medium tracking-wide text-slate-500">Preview & QR code akan segera siap</p>
+            </section>
         </div>
 
         <div id="capture-result" class="fixed inset-0 z-[60] hidden items-center justify-center overflow-y-auto bg-[#090d16]/95 p-3 backdrop-blur-md sm:p-6">
